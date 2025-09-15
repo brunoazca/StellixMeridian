@@ -9,11 +9,15 @@
         <span class="amount">{{ formatBalance(xlmBalance) }}</span>
         <span class="currency">XLM</span>
       </div>
-      <div class="balance-usd">
+      <div v-if="xlmBalance > 0" class="balance-usd">
         ≈ ${{ formatUSD(xlmBalanceUSD) }} USD
       </div>
-      <div class="balance-brl">
+      <div v-if="xlmBalance > 0" class="balance-brl">
         ≈ {{ formatBRL(xlmBalanceBRL) }}
+      </div>
+      <div v-else class="balance-info">
+        <p>💡 Conta não existe nesta rede ou saldo zero</p>
+        <p class="balance-hint">Para ativar uma conta Stellar, é necessário um depósito mínimo de XLM</p>
       </div>
       <button @click="refreshBalance" class="refresh-btn" :disabled="isLoading">
         <span v-if="!isLoading">🔄</span>
@@ -112,6 +116,26 @@ const {
   font-size: 1.3rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
+}
+
+.balance-info {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 0.75rem;
+}
+
+.balance-info p {
+  margin: 0 0 0.5rem 0;
+  color: #dbeafe;
+}
+
+.balance-hint {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .refresh-btn {

@@ -1,17 +1,31 @@
 import { ref, computed } from 'vue'
 
+// Estado global para cache de preços
+const globalPricesState = {
+  xlmPriceUSD: ref(0.12),
+  xlmPriceBRL: ref(0.60),
+  usdToBRL: ref(5.0),
+  isLoading: ref(false),
+  lastFetch: ref(0), // timestamp da última busca
+  cacheTime: 60000 // 1 minuto em ms
+}
+
 export const usePrices = () => {
-  // State
-  const xlmPriceUSD = ref(0.12)
-  const xlmPriceBRL = ref(0.60)
-  const usdToBRL = ref(5.0)
-  const isLoading = ref(false)
+  const { xlmPriceUSD, xlmPriceBRL, usdToBRL, isLoading, lastFetch, cacheTime } = globalPricesState
 
   // Computed
   const xlmPriceBRLCalculated = computed(() => xlmPriceUSD.value * usdToBRL.value)
 
   // Methods
-  const fetchXLMPrices = async () => {
+  const fetchXLMPrices = async (forceRefresh = false) => {
+    const now = Date.now()
+    
+    // Verificar se precisa buscar novamente
+    if (!forceRefresh && (now - lastFetch.value) < cacheTime) {
+      console.log('💰 Usando preços em cache (última busca há', Math.round((now - lastFetch.value) / 1000), 'segundos)')
+      return
+    }
+    
     try {
       console.log('💰 Buscando preços do XLM via API...')
       isLoading.value = true
@@ -22,6 +36,7 @@ export const usePrices = () => {
         xlmPriceUSD.value = response.xlm.usd
         usdToBRL.value = response.exchange.usdToBRL
         xlmPriceBRL.value = response.calculated.xlmBRL
+        lastFetch.value = now // Atualizar timestamp
         
         console.log('✅ Preços atualizados:', {
           xlmUSD: xlmPriceUSD.value,

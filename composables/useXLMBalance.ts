@@ -38,27 +38,34 @@ export const useXLMBalance = () => {
         ? 'https://horizon.stellar.org' 
         : 'https://horizon-testnet.stellar.org'
       
-      const response = await fetch(`${horizonUrl}/accounts/${address.value}`)
-      
-      if (!response.ok) {
-        throw new Error(`Erro ao buscar conta: ${response.status}`)
-      }
-      
-      const accountData = await response.json()
-      
-      const xlmAsset = accountData.balances.find((balance: any) => 
-        balance.asset_type === 'native' || balance.asset_code === 'XLM'
-      )
-      
-      if (xlmAsset) {
-        xlmBalance.value = parseFloat(xlmAsset.balance)
-        console.log('✅ Saldo XLM encontrado:', xlmBalance.value)
-        console.log('💰 Valor em USD:', formatUSD(xlmBalanceUSD.value))
-        console.log('💰 Valor em BRL:', formatBRL(xlmBalanceBRL.value))
-      } else {
-        xlmBalance.value = 0
-        console.log('⚠️ Nenhum saldo XLM encontrado')
-      }
+    const response = await fetch(`${horizonUrl}/accounts/${address.value}`)
+    
+    if (response.status === 404) {
+      // Conta não existe nesta rede - isso é normal
+      xlmBalance.value = 0
+      console.log('ℹ️ Conta não existe na rede', network, '- saldo zero')
+      return
+    }
+    
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar conta: ${response.status}`)
+    }
+    
+    const accountData = await response.json()
+    
+    const xlmAsset = accountData.balances.find((balance: any) => 
+      balance.asset_type === 'native' || balance.asset_code === 'XLM'
+    )
+    
+    if (xlmAsset) {
+      xlmBalance.value = parseFloat(xlmAsset.balance)
+      console.log('✅ Saldo XLM encontrado:', xlmBalance.value)
+      console.log('💰 Valor em USD:', formatUSD(xlmBalanceUSD.value))
+      console.log('💰 Valor em BRL:', formatBRL(xlmBalanceBRL.value))
+    } else {
+      xlmBalance.value = 0
+      console.log('⚠️ Conta existe mas sem saldo XLM')
+    }
       
     } catch (error) {
       console.error('❌ Erro ao buscar saldo:', error)
@@ -86,6 +93,14 @@ export const useXLMBalance = () => {
       fetchXLMBalance()
     } else if (!connected) {
       xlmBalance.value = 0
+    }
+  })
+
+  // Watch for network changes - buscar saldo quando trocar de rede
+  watch(() => currentNetwork.value, (newNetwork, oldNetwork) => {
+    if (newNetwork !== oldNetwork && address.value && isWalletConnected.value) {
+      console.log('🌐 Rede mudou de', oldNetwork, 'para', newNetwork, '- atualizando saldo')
+      fetchXLMBalance()
     }
   })
 

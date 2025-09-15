@@ -17,6 +17,9 @@
           <!-- Wallet Info -->
           <WalletInfo />
 
+          <!-- Network Selector -->
+          <NetworkSelector />
+
           <!-- XLM Balance -->
           <BalanceDisplay />
 
@@ -52,6 +55,7 @@ import { useFreighter } from '~/composables/useFreighter'
 import { usePIX } from '~/composables/usePIX'
 import WalletConnect from '~/components/WalletConnect.vue'
 import WalletInfo from '~/components/WalletInfo.vue'
+import NetworkSelector from '~/components/NetworkSelector.vue'
 import BalanceDisplay from '~/components/BalanceDisplay.vue'
 import PIXActions from '~/components/PIXActions.vue'
 import PIXModals from '~/components/PIXModals.vue'

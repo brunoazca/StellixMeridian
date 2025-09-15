@@ -78,22 +78,23 @@ export const useFreighter = () => {
   }
 
   // Switch network
-  const switchToNetwork = async (networkName: 'TESTNET' | 'PUBLIC' | 'FUTURENET') => {
+  const switchToNetwork = async (networkName: string) => {
     try {
-      if (!window.freighterApi) {
-        throw new Error('Freighter API não disponível')
+      console.log('🔄 Iniciando troca de rede para:', networkName)
+      
+      // Simplesmente atualizar a rede local (Freighter não tem API para trocar rede)
+      network.value = networkName
+      error.value = ''
+      console.log('✅ Rede alterada para:', networkName)
+      
+      // Se estiver conectado, reconectar para atualizar dados da nova rede
+      if (isConnected.value && publicKey.value) {
+        console.log('🔄 Reconectando para atualizar dados da nova rede...')
+        // Não desconectar, apenas marcar que a rede mudou
       }
       
-      // Set allowed for the app (browser API)
-      const allowedResult = await window.freighterApi.setAllowed()
-      if (allowedResult.isAllowed) {
-        network.value = networkName
-        error.value = ''
-        console.log('Rede alterada para:', networkName)
-      } else {
-        throw new Error('Falha ao autorizar aplicação')
-      }
     } catch (err) {
+      console.error('❌ Erro ao trocar rede:', err)
       error.value = err instanceof Error ? err.message : 'Erro ao trocar rede'
     }
   }
