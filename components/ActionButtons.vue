@@ -1,10 +1,10 @@
 <template>
   <div class="action-buttons">
-    <div v-if="accountData?.isConnected" class="connected-actions">
-      <button @click="handleDisconnect" class="action-btn disconnect-btn">
+    <div v-if="accountInfo?.isConnected" class="connected-actions">
+      <button @click="disconnectFreighter" class="action-btn disconnect-btn">
         Desconectar
       </button>
-      <button @click="switchToNetwork" class="action-btn network-btn">
+      <button @click="handleSwitchNetwork" class="action-btn network-btn">
         Trocar Rede
       </button>
       <button @click="handleSignMessage" class="action-btn sign-btn">
@@ -14,9 +14,9 @@
         Enviar Transação
       </button>
 
-      <div v-if="hash" class="tx-hash">
-        <strong>Hash da Transação:</strong>
-        <code>{{ hash }}</code>
+      <div v-if="signature" class="signature-result">
+        <strong>Assinatura:</strong>
+        <code>{{ signature }}</code>
       </div>
 
       <div v-if="error" class="error-message">
@@ -24,111 +24,93 @@
       </div>
     </div>
     
-    <button v-else @click="openAppKit" class="action-btn connect-btn">
-      Abrir AppKit
-    </button>
+    <div v-else class="disconnected-actions">
+      <button 
+        @click="connectFreighter" 
+        :disabled="!isFreighterAvailable || isConnecting"
+        class="action-btn connect-btn"
+      >
+        {{ isConnecting ? 'Conectando...' : 'Conectar Freighter' }}
+      </button>
+      
+      <div v-if="!isFreighterAvailable" class="warning-message">
+        <strong>Aviso:</strong> Freighter wallet não está instalado. 
+        <a href="https://freighter.app" target="_blank" class="link-button">Instalar Freighter</a>
+      </div>
+      
+      <button @click="debugFreighter" class="action-btn debug-btn">
+        Debug Freighter
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { useDisconnect, useAppKit, useAppKitNetwork, useAppKitAccount } from "@reown/appkit/vue"
-import { useEstimateGas, useSendTransaction, useSignMessage } from '@wagmi/vue'
-import { parseGwei } from 'viem'
-import { watchEffect, ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useFreighter } from '~/composables/useFreighter'
 
-// Networks
+// Stellar networks
 const networks = [
-  { id: 1, name: 'Ethereum' },
-  { id: 137, name: 'Polygon' },
-  { id: 8453, name: 'Base' }
+  { name: 'TESTNET', displayName: 'Testnet' },
+  { name: 'PUBLIC', displayName: 'Mainnet' },
+  { name: 'FUTURENET', displayName: 'Futurenet' }
 ]
 
-// Test transaction
-const TEST_TX = {
-  to: "0x50200216532355Fa9971074Ca352FA706346c04C", // change to your address
-  value: parseGwei('0.00001')
-}
+// Freighter composable
+const { 
+  accountInfo, 
+  isConnecting, 
+  error: freighterError, 
+  isFreighterAvailable,
+  connectFreighter, 
+  disconnectFreighter, 
+  switchToNetwork,
+  signMessage,
+  network
+} = useFreighter()
 
-// Composables
-const { disconnect } = useDisconnect()
-const { open } = useAppKit()
-const networkData = useAppKitNetwork()
-const accountData = useAppKitAccount()
-const { data: gas } = useEstimateGas({...TEST_TX})
-const { data: hash, sendTransaction, error } = useSendTransaction()
-const { signMessageAsync } = useSignMessage()
+// Local state
+const signature = ref(null)
+const error = computed(() => freighterError.value)
 
 // Methods
-const openAppKit = () => open()
-
-const handleDisconnect = async () => {
-  try {
-    await disconnect()
-    console.log('✅ Desconectado com sucesso')
-  } catch (error) {
-    console.error("❌ Erro durante desconexão:", error)
-  }
-}
-
-const switchToNetwork = () => {
-  if (networkData.value?.switchNetwork) {
-    networkData.value.switchNetwork(networks[1])
-  }
+const handleSwitchNetwork = () => {
+  // Switch to PUBLIC (mainnet)
+  switchToNetwork('PUBLIC')
 }
 
 const handleSignMessage = async () => {
   try {
-    console.log("🔏 Assinando mensagem...")
-    const msg = "Olá do StellixMeridian!"
-    const address = accountData.value?.address
+    console.log("Assinando mensagem...")
+    const msg = "Olá do Stellix!"
     
-    if (!address) {
-      console.error("❌ Endereço não encontrado")
+    if (!accountInfo.value?.address) {
+      console.error("Carteira não conectada")
       return
     }
     
-    const signature = await signMessageAsync({ 
-      message: msg, 
-      account: address
-    })
-    
-    console.log("✅ Mensagem assinada:", signature)
+    const result = await signMessage(msg)
+    signature.value = result
+    console.log("Mensagem assinada:", result)
   } catch (err) {
-    console.error("❌ Erro ao assinar mensagem:", err)
+    console.error("Erro ao assinar mensagem:", err)
   }
 }
 
 const handleSendTx = () => {
-  try {
-    console.log("💸 Enviando transação...")
-    
-    if (!gas.value) {
-      console.error("❌ Gas não estimado")
-      return
-    }
-    
-    sendTransaction({
-      ...TEST_TX,
-      gas: gas.value
-    })
-  } catch (err) {
-    console.log('❌ Erro ao enviar transação:', err)
-  }
+  console.log("💸 Funcionalidade de transação Stellar em desenvolvimento...")
+  // TODO: Implementar transações Stellar usando Freighter
 }
 
-// Watch for transaction hash
-watchEffect(() => {
-  if (hash.value) {
-    console.log("✅ Hash da transação:", hash.value)
-  }
-})
-
-// Watch for errors
-watchEffect(() => {
-  if (error.value) {
-    console.error("❌ Erro:", error.value)
-  }
-})
+const debugFreighter = () => {
+  console.log('=== DEBUG FREIGHTER ===')
+  console.log('window.freighterApi:', window.freighterApi)
+  console.log('isFreighterAvailable:', isFreighterAvailable.value)
+  console.log('isConnecting:', isConnecting.value)
+  console.log('error:', error.value)
+  console.log('accountInfo:', accountInfo.value)
+  console.log('========================')
+}
 </script>
 
 <style scoped>
@@ -199,7 +181,7 @@ watchEffect(() => {
   background: #7c3aed;
 }
 
-.tx-hash {
+.signature-result {
   margin-top: 1rem;
   padding: 1rem;
   background: rgba(34, 197, 94, 0.1);
@@ -208,7 +190,7 @@ watchEffect(() => {
   width: 100%;
 }
 
-.tx-hash code {
+.signature-result code {
   font-family: 'Monaco', 'Menlo', monospace;
   font-size: 0.8rem;
   word-break: break-all;
@@ -223,5 +205,43 @@ watchEffect(() => {
   border-radius: 0.5rem;
   width: 100%;
   color: #ef4444;
+}
+
+.disconnected-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.warning-message {
+  padding: 1rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 0.5rem;
+  text-align: center;
+  color: #f59e0b;
+}
+
+.link-button {
+  color: #60a5fa;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.link-button:hover {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.debug-btn {
+  background: #6b7280;
+  color: white;
+  margin-top: 1rem;
+}
+
+.debug-btn:hover {
+  background: #4b5563;
 }
 </style>

@@ -9,7 +9,7 @@ export default defineNuxtConfig({
   // Runtime config
   runtimeConfig: {
     public: {
-      reownProjectId: process.env.REOWN_PROJECT_ID || 'b56e18d47c72ab683b10814fe9495694'
+      // Freighter doesn't require a project ID
     }
   }
 })

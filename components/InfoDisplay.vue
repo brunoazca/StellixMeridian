@@ -5,49 +5,25 @@
       <div class="info-grid">
         <div class="info-item">
           <span class="label">Endereço:</span>
-          <span class="value">{{ accountInfo?.address || 'Não conectado' }}</span>
+          <span class="value">{{ address || 'Não conectado' }}</span>
         </div>
         <div class="info-item">
-          <span class="label">CAIP Address:</span>
-          <span class="value">{{ accountInfo?.caipAddress || 'N/A' }}</span>
+          <span class="label">Debug:</span>
+          <span class="value">{{ JSON.stringify(accountInfo) }}</span>
         </div>
         <div class="info-item">
           <span class="label">Conectado:</span>
-          <span class="value" :class="{ connected: accountInfo?.isConnected }">
-            {{ accountInfo?.isConnected ? 'Sim' : 'Não' }}
+          <span class="value" :class="{ connected: isWalletConnected }">
+            {{ isWalletConnected ? 'Sim' : 'Não' }}
           </span>
         </div>
         <div class="info-item">
           <span class="label">Status:</span>
-          <span class="value">{{ accountInfo?.status || 'Desconectado' }}</span>
-        </div>
-        <div class="info-item" v-if="accountInfo?.embeddedWalletInfo?.user?.email">
-          <span class="label">Email:</span>
-          <span class="value">{{ accountInfo.embeddedWalletInfo.user.email }}</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="info-section">
-      <h3>Tema</h3>
-      <div class="info-grid">
-        <div class="info-item">
-          <span class="label">Modo:</span>
-          <span class="value">{{ kitTheme?.themeMode || 'Não definido' }}</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="info-section">
-      <h3>Estado do AppKit</h3>
-      <div class="info-grid">
-        <div class="info-item">
-          <span class="label">Modal Aberto:</span>
-          <span class="value">{{ state?.open ? 'Sim' : 'Não' }}</span>
+          <span class="value">{{ isWalletConnected ? 'Conectado' : 'Desconectado' }}</span>
         </div>
         <div class="info-item">
-          <span class="label">Rede Selecionada:</span>
-          <span class="value">{{ getNetworkName(state?.selectedNetworkId) }}</span>
+          <span class="label">Rede:</span>
+          <span class="value">{{ currentNetwork || 'N/A' }}</span>
         </div>
       </div>
     </section>
@@ -56,8 +32,24 @@
       <h3>Informações da Carteira</h3>
       <div class="info-grid">
         <div class="info-item">
-          <span class="label">Nome:</span>
-          <span class="value">{{ walletInfo?.name || 'N/A' }}</span>
+          <span class="label">Tipo:</span>
+          <span class="value">Freighter</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Disponível:</span>
+          <span class="value" :class="{ connected: isFreighterAvailable }">
+            {{ isFreighterAvailable ? 'Sim' : 'Não' }}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="info-section">
+      <h3>Rede Atual</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="label">Rede:</span>
+          <span class="value">{{ getNetworkName(accountInfo?.network) }}</span>
         </div>
       </div>
     </section>
@@ -65,28 +57,25 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import {
-  useAppKitState,
-  useAppKitTheme,
-  useAppKitAccount,
-  useWalletInfo,
-} from "@reown/appkit/vue"
+import { useFreighter } from '~/composables/useFreighter'
 
-// Composables
-const kitTheme = useAppKitTheme()
-const state = useAppKitState()
-const accountInfo = useAppKitAccount()
-const walletInfo = useWalletInfo()
+// Freighter composable
+const { 
+  accountInfo, 
+  isFreighterAvailable, 
+  address, 
+  isWalletConnected, 
+  currentNetwork 
+} = useFreighter()
 
 // Network mapping
-const getNetworkName = (networkId) => {
+const getNetworkName = (networkName) => {
   const networks = {
-    1: 'Ethereum',
-    137: 'Polygon',
-    8453: 'Base'
+    'TESTNET': 'Stellar Testnet',
+    'PUBLIC': 'Stellar Mainnet',
+    'FUTURENET': 'Stellar Futurenet'
   }
-  return networks[networkId] || `Chain ${networkId}` || 'Não selecionada'
+  return networks[networkName] || networkName || 'Não selecionada'
 }
 </script>
 

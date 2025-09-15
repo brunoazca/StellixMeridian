@@ -1,4 +1,4 @@
-# StellixMeridian
+# Stellix
 
 Uma aplicação Web3 moderna construída com Nuxt.js e Reown AppKit para conexão de carteiras.
 
