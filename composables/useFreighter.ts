@@ -1,11 +1,16 @@
 import { ref, computed } from 'vue'
 
+// Estado global compartilhado
+const globalState = {
+  isConnecting: ref(false),
+  error: ref(''),
+  publicKey: ref(''),
+  isConnected: ref(false),
+  network: ref('TESTNET')
+}
+
 export const useFreighter = () => {
-  const isConnecting = ref(false)
-  const error = ref<string | null>(null)
-  const publicKey = ref<string | null>(null)
-  const isConnected = ref(false)
-  const network = ref('TESTNET')
+  const { isConnecting, error, publicKey, isConnected, network } = globalState
 
   // Check if Freighter extension is available
   const isFreighterAvailable = computed(() => {
@@ -26,7 +31,7 @@ export const useFreighter = () => {
 
     try {
       isConnecting.value = true
-      error.value = null
+      error.value = ''
 
       // Check if extension is connected (browser API)
       const isAppConnected = await window.freighterApi.isConnected()
@@ -53,7 +58,6 @@ export const useFreighter = () => {
       publicKey.value = accessResult.address
       isConnected.value = true
       console.log('✅ Conectado! Endereço:', publicKey.value)
-      console.log('✅ Estado atual - isConnected:', isConnected.value, 'publicKey:', publicKey.value)
       
       return true
     } catch (err) {
@@ -67,9 +71,9 @@ export const useFreighter = () => {
 
   // Disconnect from Freighter
   const disconnectFreighter = async () => {
-    publicKey.value = null
+    publicKey.value = ''
     isConnected.value = false
-    error.value = null
+    error.value = ''
     console.log('Desconectado')
   }
 
@@ -84,7 +88,7 @@ export const useFreighter = () => {
       const allowedResult = await window.freighterApi.setAllowed()
       if (allowedResult.isAllowed) {
         network.value = networkName
-        error.value = null
+        error.value = ''
         console.log('Rede alterada para:', networkName)
       } else {
         throw new Error('Falha ao autorizar aplicação')
@@ -129,7 +133,6 @@ export const useFreighter = () => {
       network: network.value,
       status: isConnected.value ? 'Conectado' : 'Desconectado'
     }
-    console.log('📊 accountInfo atualizado:', info)
     return info
   })
 
