@@ -25,7 +25,7 @@
             </div>
             <div class="balance-fiat">{{ formatBRL(xlmBalanceBRL) }}</div>
             <button class="merit-tokens-button">
-              <img src="/images/medal.svg" alt="Medal" class="merit-icon" />
+              <img src="/images/MERIT.png" alt="MERIT Token" class="merit-icon" />
               {{ formatMeritBalance(meritBalance) }} Merit Tokens
             </button>
           </div>
