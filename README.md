@@ -1,93 +1,190 @@
 # Stellix
 
-Uma aplicação Web3 moderna construída com Nuxt.js e Reown AppKit para conexão de carteiras.
+Uma aplicação Web3 moderna que integra carteiras Stellar com funcionalidades PIX, permitindo transações entre criptomoedas e o sistema de pagamentos instantâneos brasileiro.
 
 ## 🚀 Funcionalidades
 
-- ✅ Conexão com carteiras Web3 via Reown AppKit
-- ✅ Suporte a múltiplas redes (Ethereum, Arbitrum, Base)
-- ✅ Interface moderna e responsiva
-- ✅ Detecção automática de carteiras conectadas
+### 💳 Integração com Carteiras Stellar
+- **Freighter Wallet**: Conexão direta com carteiras Stellar
+- **Múltiplas Redes**: Suporte para Testnet e Mainnet
+- **Balance em Tempo Real**: Visualização de saldo XLM e conversão para BRL
+- **Merit Tokens**: Sistema de tokens de mérito integrado
+
+### 💰 Sistema PIX Completo
+- **Envio de PIX**: Transferências via chave PIX (Email ou CPF)
+- **Recebimento de PIX**: Geração de códigos PIX para recebimento
+- **Integração Asaas**: API completa para processamento de PIX
+- **Monitoramento Automático**: Verificação de PIX recebidos a cada 15 segundos
+- **Notificações**: Alertas em tempo real para PIX recebidos
+
+### 🎨 Interface Moderna
+- **Design Responsivo**: Interface adaptável para desktop e mobile
+- **Tema Escuro**: Visual moderno e elegante
+- **Animações**: Transições suaves e feedback visual
+- **UX Otimizada**: Experiência de usuário intuitiva
 
 ## 🛠️ Tecnologias
 
-- **Nuxt.js 4** - Framework Vue.js
-- **Reown AppKit** - Conexão de carteiras Web3
-- **Wagmi** - Biblioteca para interação com Ethereum
-- **Viem** - Cliente Ethereum TypeScript
+- **Frontend**: Vue.js 3 + Nuxt 4
+- **Styling**: CSS3 com variáveis customizadas
+- **Web3**: Stellar SDK + Freighter API
+- **Backend**: Nitro (Nuxt Server)
+- **PIX**: Integração com API Asaas
+- **TypeScript**: Tipagem estática completa
 
-## 📦 Instalação
+## �� Instalação
 
-1. Clone o repositório
-2. Instale as dependências:
-   ```bash
-   npm install
-   ```
+### Pré-requisitos
+- Node.js 18+ 
+- npm ou yarn
+- Carteira Freighter instalada no navegador
 
-3. Configure o Project ID:
-   - Copie `env.example` para `.env`
-   - Obtenha um Project ID em [Reown Dashboard](https://dashboard.reown.com/)
-   - Adicione o Project ID no arquivo `.env`
+### Configuração
 
-4. Execute o projeto:
-   ```bash
-   npm run dev
-   ```
-
-## 🔧 Configuração
-
-### Project ID
-
-Para usar o Reown AppKit, você precisa de um Project ID:
-
-1. Acesse [Reown Dashboard](https://dashboard.reown.com/)
-2. Crie um novo projeto
-3. Copie o Project ID
-4. Adicione no arquivo `.env`:
-   ```
-   REOWN_PROJECT_ID=seu_project_id_aqui
-   ```
-
-## 📁 Estrutura do Projeto
-
-```
-├── app/
-│   └── app.vue              # Componente principal
-├── pages/
-│   └── index.vue            # Página inicial
-├── plugins/
-│   └── appkit.client.ts     # Plugin do Reown AppKit
-├── components/              # Componentes Vue
-├── composables/             # Composables Vue
-├── layouts/                 # Layouts do Nuxt
-├── middleware/              # Middleware do Nuxt
-├── server/                  # API routes
-├── stores/                  # Pinia stores
-├── types/                   # Tipos TypeScript
-├── utils/                   # Utilitários
-└── assets/                  # Assets estáticos
+1. **Clone o repositório**
+```bash
+git clone https://github.com/brunoazca/StellixMeridian.git
+cd StellixMeridian
 ```
 
-## 🌐 Redes Suportadas
+2. **Instale as dependências**
+```bash
+npm install
+```
 
-- **Ethereum** (Mainnet)
-- **Arbitrum** (One)
-- **Base** (Mainnet)
+3. **Configure as variáveis de ambiente**
+```bash
+cp env.example .env
+```
 
-## 📚 Documentação
+Edite o arquivo `.env` com suas credenciais:
+```env
+# Asaas API Configuration
+ASAAS_API_URL=https://api-sandbox.asaas.com/v3
+ASAAS_ACCESS_TOKEN=seu_token_asaas_aqui
+```
 
-- [Reown AppKit Vue](https://docs.reown.com/appkit/vue/core/installation)
-- [Nuxt.js](https://nuxt.com/)
-- [Wagmi](https://wagmi.sh/)
+4. **Execute o projeto**
+```bash
+npm run dev
+```
+
+A aplicação estará disponível em `http://localhost:3000`
+
+## 🔧 Configuração da API Asaas
+
+### Sandbox (Desenvolvimento)
+- URL: `https://api-sandbox.asaas.com/v3`
+- Token: Obtenha no painel de desenvolvedor da Asaas
+
+### Produção
+- URL: `https://api.asaas.com/v3`
+- Token: Token de produção da Asaas
+
+## �� Como Usar
+
+### 1. Conectar Carteira
+- Instale a extensão Freighter no seu navegador
+- Clique em "Connect Wallet" na aplicação
+- Autorize a conexão
+
+### 2. Enviar PIX
+- Clique no botão "Pay"
+- Selecione o tipo de chave PIX (Email ou CPF)
+- Digite a chave PIX do destinatário
+- Informe o valor
+- Confirme a transação
+
+### 3. Receber PIX
+- Clique no botão "Receive"
+- Selecione o tipo de chave PIX
+- Digite sua chave PIX
+- Informe o valor desejado
+- Compartilhe o código PIX gerado
+
+### 4. Monitoramento
+- O sistema monitora automaticamente PIX recebidos
+- Notificações aparecem quando novos PIX chegam
+- Status em tempo real na interface
+
+## 🔒 Segurança
+
+- **Variáveis de Ambiente**: Credenciais sensíveis protegidas
+- **Validação**: Validação rigorosa de dados de entrada
+- **HTTPS**: Comunicação segura com APIs
+- **Sanitização**: Dados sanitizados antes do processamento
+
+## �� Monitoramento
+
+### Logs
+- Logs detalhados no console do navegador
+- Logs de servidor para debugging
+- Rastreamento de transações PIX
+
+### Métricas
+- Status de conexão da carteira
+- Status do monitoramento PIX
+- Contadores de transações
+
+## 🚀 Deploy
+
+### Vercel (Recomendado)
+```bash
+npm run build
+vercel --prod
+```
+
+### Netlify
+```bash
+npm run generate
+# Upload da pasta dist/
+```
+
+### Docker
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
+```
 
 ## 🤝 Contribuição
 
 1. Fork o projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-## 📄 Licença
+## �� Licença
 
-Este projeto está sob a licença MIT.
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## �� Suporte
+
+- **Issues**: [GitHub Issues](https://github.com/brunoazca/StellixMeridian/issues)
+- **Documentação**: Veja os arquivos `.md` na raiz do projeto
+- **Email**: suporte@stellix.com
+
+## �� Roadmap
+
+- [ ] Suporte a mais tipos de chave PIX
+- [ ] Integração com outras carteiras Stellar
+- [ ] Histórico de transações
+- [ ] Exportação de relatórios
+- [ ] App mobile (React Native)
+- [ ] Integração com outras criptomoedas
+
+## 📈 Status do Projeto
+
+![Status](https://img.shields.io/badge/status-active-brightgreen)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+---
+
+**StellixMeridian** - Conectando o futuro das finanças com o presente dos pagamentos brasileiros. 🌟
