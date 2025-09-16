@@ -44,13 +44,13 @@
           <div class="detail-content">
             <div class="fee-item">
               <span class="fee-label">Transaction fee</span>
-              <span class="fee-value">R$ 2,50</span>
+              <span class="fee-value">{{feeValue}}</span>
             </div>
             <div v-if="paymentData.useMerit" class="fee-item merit-applied">
               <span class="fee-label">Merit applied</span>
               <span class="fee-value">- {{meritTokensUsed}} Merit</span>
             </div>
-            <div class="fee-item final-fee">
+            <div v-if="paymentData.useMerit" class="fee-item final-fee">
               <span class="fee-label">Final fee</span>
               <span class="fee-value">R$ {{ finalFee.replace('.', ',') }}</span>
             </div>
@@ -154,17 +154,30 @@ const xlmAmount = computed(() => {
   return (amount * xlmRate).toFixed(2)
 })
 
+// TODO: Get real fee and merit conversion values
+
+const baseFee = computed(() => {
+  return 2.50 // Base fee in BRL
+})
+
+const feeValue = computed(() => {
+  return `R$ ${baseFee.value.toFixed(2).replace('.', ',')}`
+})
+
 const finalFee = computed(() => {
-  const baseFee = 2.50
+  const mockMeritConversion = 0.123
+
   if (paymentData.value.useMerit) {
-    return (baseFee * 0.5).toFixed(2) // 50% discount with Merit
+    const discount = meritTokensUsed.value * mockMeritConversion
+    const finalFeeValue = Math.max(0, baseFee.value - discount) // Ensure fee doesn't go below 0
+    return finalFeeValue.toFixed(2)
   }
-  return baseFee.toFixed(2)
+  return baseFee.value.toFixed(2)
 })
 
 const meritTokensUsed = computed(() => {
   if (paymentData.value.useMerit) {
-    return 10 // 10 Merit tokens for 50% fee discount
+    return 10
   }
   return 0
 })
@@ -527,6 +540,7 @@ useHead({
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
+  margin-bottom: 5rem;
 }
 
 .continue-button:hover:not(:disabled) {
