@@ -30,13 +30,31 @@
             </button>
           </div>
 
+          <!-- PIX Monitoring Status -->
+          <div class="pix-monitoring-section">
+            <div class="monitoring-status">
+              <div class="status-indicator" :class="{ active: isMonitoring }">
+                <span class="status-dot"></span>
+                <span class="status-text">
+                  {{ isMonitoring ? 'Monitoring PIX' : 'PIX Monitoring Off' }}
+                </span>
+              </div>
+              <div v-if="receivedPIXNotifications.length > 0" class="notifications-badge">
+                {{ receivedPIXNotifications.length }}
+              </div>
+            </div>
+            <div v-if="monitoringError" class="monitoring-error">
+              ⚠️ {{ monitoringError }}
+            </div>
+          </div>
+
           <!-- Action Buttons -->
           <div class="action-buttons">
-            <button class="pay-button" @click="handlePayClick">
+            <button class="pay-button" @click="openPayPix">
               <img src="/images/qr-code.svg" alt="QR Code" class="button-icon" />
               Pay
             </button>
-            <button class="receive-button" @click="handleReceiveClick">
+            <button class="receive-button" @click="openMakePix">
               <img src="/images/receive.svg" alt="Receive" class="button-icon" />
               Receive
             </button>
@@ -75,7 +93,7 @@
 </template>
 
 <script setup>
-import { watch, ref, onMounted, onUnmounted } from 'vue'
+import { watch, ref } from 'vue'
 import { useFreighter } from '~/composables/useFreighter'
 import { useXLMBalance } from '~/composables/useXLMBalance'
 import { useMeritTokens } from '~/composables/useMeritTokens'
@@ -126,6 +144,16 @@ const {
   handlePayPix
 } = usePIX()
 
+// PIX Monitoring
+const { 
+  isMonitoring, 
+  receivedPIXNotifications, 
+  error: monitoringError,
+  startMonitoring,
+  stopMonitoring,
+  clearNotifications
+} = usePIXMonitoring()
+
 // Methods
 const copyAddress = async () => {
   if (address.value) {
@@ -137,42 +165,6 @@ const copyAddress = async () => {
     }
   }
 }
-
-const handlePayClick = () => {
-  // Check if screen is mobile (768px or less)
-  if (window.innerWidth <= 768) {
-    // Navigate to pay page on mobile
-    navigateTo('/pay')
-  } else {
-    // Open modal on desktop
-    openPayPix()
-  }
-}
-
-const handleReceiveClick = () => {
-  // Check if screen is mobile (768px or less)
-  if (window.innerWidth <= 768) {
-    // Navigate to receive page on mobile
-    navigateTo('/receive')
-  } else {
-    // Open modal on desktop
-    openMakePix()
-  }
-}
-
-// Add resize listener for responsive behavior
-onMounted(() => {
-  const handleResize = () => {
-    // This will be called when window is resized
-    // The handlePayClick function will check the current width
-  }
-  
-  window.addEventListener('resize', handleResize)
-  
-  onUnmounted(() => {
-    window.removeEventListener('resize', handleResize)
-  })
-})
 
 const handlePIXSuccess = async (type, data) => {
   if (type === 'make') {
@@ -406,6 +398,79 @@ html, body {
   width: 20px;
   height: 20px;
   object-fit: contain;
+}
+
+/* PIX Monitoring Section */
+.pix-monitoring-section {
+  background: #000000;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.monitoring-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b7280;
+  transition: all 0.3s ease;
+}
+
+.status-indicator.active .status-dot {
+  background: #10b981;
+  animation: pulse 2s infinite;
+}
+
+.status-text {
+  font-family: 'Inter', sans-serif;
+  color: var(--white);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.notifications-badge {
+  background: var(--pix);
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  animation: bounce 1s infinite;
+}
+
+.monitoring-error {
+  color: #ef4444;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  font-family: 'Inter', sans-serif;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+  60% { transform: translateY(-2px); }
 }
 
 /* Wallet Info Section */
