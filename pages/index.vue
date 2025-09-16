@@ -81,7 +81,7 @@
         <!-- PIX Modals -->
         <PIXModals 
           :show-make-pix="showMakePix"
-          :show-pay-pix="showPayPix"
+          :show-pay-pix="false"
           :is-processing-pix="isProcessingPix"
           @close-make-pix="closeMakePix"
           @close-pay-pix="closePayPix"
@@ -98,6 +98,7 @@ import { useFreighter } from '~/composables/useFreighter'
 import { useXLMBalance } from '~/composables/useXLMBalance'
 import { useMeritTokens } from '~/composables/useMeritTokens'
 import { usePIX } from '~/composables/usePIX'
+import { usePIXMonitoring } from '~/composables/usePIXMonitoring'
 import WalletConnect from '~/components/WalletConnect.vue'
 import WalletInfo from '~/components/WalletInfo.vue'
 import NetworkSelector from '~/components/NetworkSelector.vue'
@@ -134,14 +135,12 @@ watch(selectedNetwork, async (newNetwork) => {
 })
 const { 
   showMakePix, 
-  showPayPix, 
   isProcessingPix, 
   openMakePix, 
   openPayPix, 
   closeMakePix, 
   closePayPix,
-  handleMakePix,
-  handlePayPix
+  handleMakePix
 } = usePIX()
 
 // PIX Monitoring
@@ -170,7 +169,7 @@ const handleMakePixSuccess = async (type, data) => {
   if (type === 'make') {
     await handleMakePix(data)
   }
-  // Pay PIX agora navega diretamente para confirm-payment, não precisa processar aqui
+  // Pay PIX now navigates directly to /pay page, then to confirm-payment
 }
 
 // Meta tags

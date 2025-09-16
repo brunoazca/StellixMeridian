@@ -38,43 +38,7 @@
     </div>
   </div>
 
-  <!-- Pay PIX Modal -->
-  <div v-if="showPayPix" class="modal-overlay" @click="$emit('close-pay-pix')">
-    <div class="modal" @click.stop>
-      <div class="modal-header">
-        <h3>💳 Pay PIX</h3>
-        <button @click="$emit('close-pay-pix')" class="close-button">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>Amount (R$)</label>
-          <input v-model="payPixForm.amount" type="number" step="0.01" placeholder="0.00" />
-        </div>
-        <div class="form-group">
-          <label>PIX Key Type</label>
-          <select v-model="payPixForm.pixKeyType" class="pix-type-selector">
-            <option value="EMAIL">Email</option>
-            <option value="CPF">CPF</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>{{ payPixForm.pixKeyType === 'EMAIL' ? 'PIX Email' : 'PIX CPF' }}</label>
-          <input 
-            v-model="payPixForm.pixCode" 
-            :type="payPixForm.pixKeyType === 'EMAIL' ? 'email' : 'text'"
-            :placeholder="payPixForm.pixKeyType === 'EMAIL' ? 'Enter PIX email here' : 'Enter PIX CPF here'" 
-          />
-        </div>
-        <button @click="handlePayPix" :disabled="isProcessingPix" class="submit-button">
-          <span v-if="isProcessingPix" class="loading-spinner">⏳</span>
-          {{ isProcessingPix ? 'Processing...' : 'Pay PIX' }}
-        </button>
-        <div v-if="isProcessingPix" class="processing-info">
-          Processing PIX payment...
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Pay PIX Modal - Removed: Pay now navigates to /pay page -->
 </template>
 
 <script setup>
@@ -102,11 +66,7 @@ const makePixForm = ref({
   recipientName: ''
 })
 
-const payPixForm = ref({
-  amount: '',
-  pixKeyType: 'EMAIL',
-  pixCode: ''
-})
+// payPixForm removed - Pay PIX now handled by /pay page
 
 // Methods
 const validateEmail = (email) => {
@@ -183,67 +143,7 @@ const handleMakePix = async () => {
   makePixForm.value = { amount: '', pixKeyType: 'EMAIL', recipientKey: '', recipientName: '' }
 }
 
-const handlePayPix = async () => {
-  if (!payPixForm.value.amount || !payPixForm.value.pixCode) {
-    alert('Please fill in all fields')
-    return
-  }
-
-  // Validate locally first
-  if (payPixForm.value.pixKeyType === 'EMAIL') {
-    if (!validateEmail(payPixForm.value.pixCode)) {
-      alert('Invalid email')
-      return
-    }
-  } else if (payPixForm.value.pixKeyType === 'CPF') {
-    if (!validateCPF(payPixForm.value.pixCode)) {
-      alert('Invalid CPF')
-      return
-    }
-  }
-
-  try {
-    console.log('🔍 Validando chave PIX...')
-    
-    // Validate PIX key with server
-    const validation = await $fetch('/api/pix/validate', {
-      method: 'POST',
-      body: {
-        pixCode: payPixForm.value.pixCode,
-        pixKeyType: payPixForm.value.pixKeyType
-      }
-    })
-
-    if (!validation.success) {
-      alert(`Chave PIX inválida: ${validation.error}`)
-      return
-    }
-
-    console.log('✅ Chave PIX válida, navegando para confirmação...')
-
-    // Close modal first
-    emit('close-pay-pix')
-
-    // Navigate to confirmation page with validated data
-    await navigateTo({
-      path: '/confirm-payment',
-      query: {
-        amount: payPixForm.value.amount,
-        pixCode: payPixForm.value.pixCode,
-        pixKeyType: payPixForm.value.pixKeyType,
-        recipientName: validation.recipient.name,
-        useMerit: false
-      }
-    })
-
-    // Reset form
-    payPixForm.value = { amount: '', pixKeyType: 'EMAIL', pixCode: '' }
-
-  } catch (error) {
-    console.error('❌ Erro ao validar PIX:', error)
-    alert('Erro ao validar chave PIX. Tente novamente.')
-  }
-}
+// handlePayPix removed - Pay PIX functionality moved to /pay page
 </script>
 
 <style scoped>

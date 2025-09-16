@@ -59,7 +59,8 @@ export const usePIX = () => {
   }
 
   const openPayPix = () => {
-    showPayPix.value = true
+    // Navigate to pay page instead of opening modal
+    navigateTo('/pay')
   }
 
   const closeMakePix = () => {
