@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { useFreighter } from './useFreighter'
 
 export const usePIX = () => {
   // State
@@ -55,8 +56,15 @@ export const usePIX = () => {
   }
 
   const openMakePix = () => {
-    // Navigate to receive page instead of opening modal
-    navigateTo('/receive')
+    // Navigate directly to CPF copy/paste page, skipping receive form
+    // Pass wallet address for XLM transfer tracking
+    const { address } = useFreighter()
+    navigateTo({
+      path: '/share-pix',
+      query: {
+        walletAddress: address.value || ''
+      }
+    })
   }
 
   const openPayPix = () => {

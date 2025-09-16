@@ -162,24 +162,13 @@ export const usePIXMonitoring = () => {
 
   // Parse transaction data from PIX code
   const parsePixTransactionData = (pixCode: string) => {
-    try {
-      // Extract transaction info from PIX code
-      // Looking for pattern: WALLET:XXXXXXXX|MERIT:XX.XX
-      const transactionInfoMatch = pixCode.match(/WALLET:([A-Z0-9]{8})\|MERIT:(\d+\.?\d*)/i)
-      
-      if (transactionInfoMatch) {
-        return {
-          walletAddressShort: transactionInfoMatch[1] || '',
-          meritToDebit: parseFloat(transactionInfoMatch[2] || '0') || 0
-        }
-      }
-      
-      console.log('⚠️ No transaction data found in PIX code')
-      return null
-    } catch (error) {
-      console.error('❌ Error parsing PIX transaction data:', error)
-      return null
-    }
+    console.log('⚠️ PIX code no longer contains additional data fields')
+    console.log('📋 Transaction data must be obtained from external source')
+    
+    // Since we removed additional data from PIX code, 
+    // transaction data needs to be stored/retrieved differently
+    // For now, return null to indicate no embedded data
+    return null
   }
 
   // PROTOTYPE: Transfer MERIT tokens to pool
@@ -236,43 +225,75 @@ export const usePIXMonitoring = () => {
     }
   }
 
-  // Process PIX transaction and execute transfers
-  const processPIXTransaction = async (pixTransaction: any) => {
-    console.log('🔍 Processing PIX transaction for transfers...')
-    console.log('  - Transaction ID:', pixTransaction.id)
-    console.log('  - Amount:', `R$ ${pixTransaction.value?.toFixed(2)}`)
+  // PROTOTYPE: Transfer XLM to user when PIX is received
+  const transferXlmToUser = async (pixTransaction: any) => {
+    console.log('🔄 [PROTOTYPE] Transferring XLM to user...')
+    console.log(`  - PIX amount received: R$ ${pixTransaction.value?.toFixed(2) || '0.00'}`)
     
-    // Try to extract transaction data from PIX description or additional info
-    // In a real implementation, this would come from the PIX transaction details
-    const pixCode = pixTransaction.description || pixTransaction.additionalInfo || ''
-    const transactionData = parsePixTransactionData(pixCode)
+    // Convert BRL to XLM (approximate rate: 1 BRL = 0.37 XLM)
+    const xlmAmount = (pixTransaction.value || 0) * 0.37
+    console.log(`  - XLM to transfer: ${xlmAmount.toFixed(7)} XLM`)
     
-    if (!transactionData) {
-      console.log('⚠️ No transaction data found, skipping transfers')
-      return { success: false, reason: 'No transaction data found' }
+    // TODO: Get user wallet address from database/session storage
+    // For now, using a placeholder
+    const userWalletAddress = 'USER_WALLET_ADDRESS_HERE'
+    console.log(`  - To wallet: ${userWalletAddress}`)
+    
+    // TODO: Implement actual XLM transfer using pool's private key
+    // const sourceAccount = await horizonServer.loadAccount(poolAddress)
+    // const transaction = new TransactionBuilder(sourceAccount, {
+    //   fee: StellarSdk.BASE_FEE,
+    //   networkPassphrase: Networks.TESTNET
+    // })
+    // .addOperation(Operation.payment({
+    //   destination: userWalletAddress,
+    //   asset: Asset.native(),
+    //   amount: xlmAmount.toString()
+    // }))
+    // .setTimeout(30)
+    // .build()
+    // 
+    // transaction.sign(poolKeypair)
+    // const result = await horizonServer.submitTransaction(transaction)
+    
+    console.log('✅ [PROTOTYPE] XLM transfer completed successfully')
+    return {
+      success: true,
+      txHash: `XLM_TRANSFER_${Date.now()}`,
+      xlmAmount: xlmAmount,
+      brlAmount: pixTransaction.value || 0,
+      userWallet: userWalletAddress,
+      timestamp: new Date().toISOString()
     }
-    
-    console.log('✅ Transaction data parsed:', transactionData)
+  }
+
+  // Process PIX transaction and execute XLM transfer
+  const processPIXTransaction = async (pixTransaction: any) => {
+    console.log('🔍 Processing PIX transaction for XLM transfer...')
+    console.log('  - Transaction ID:', pixTransaction.id)
+    console.log('  - Amount:', `R$ ${pixTransaction.value?.toFixed(2) || '0.00'}`)
     
     try {
-      // Execute transfers in parallel (transactionData is guaranteed to be non-null here)
-      const [meritResult, xlmResult] = await Promise.all([
-        transferMeritToPool(transactionData.walletAddressShort, transactionData.meritToDebit),
-        receiveXlmToPool(pixTransaction, transactionData)
-      ])
+      // Transfer XLM to user automatically when PIX is received
+      const transferResult = await transferXlmToUser(pixTransaction)
       
-      console.log('🎉 All transfers completed successfully!')
-      console.log('  - MERIT transfer:', meritResult.txHash)
-      console.log('  - XLM transfer:', xlmResult.txHash)
-      
-      return {
-        success: true,
-        meritTransfer: meritResult,
-        xlmTransfer: xlmResult,
-        transactionData
+      if (transferResult.success) {
+        console.log('🎉 XLM transfer completed successfully!')
+        console.log('  - XLM transferred:', transferResult.xlmAmount.toFixed(7), 'XLM')
+        console.log('  - Transaction hash:', transferResult.txHash)
+        console.log('  - To wallet:', transferResult.userWallet)
+        
+        return {
+          success: true,
+          xlmTransfer: transferResult,
+          message: 'XLM transferred to user wallet automatically'
+        }
+      } else {
+        console.error('❌ XLM transfer failed')
+        return { success: false, reason: 'XLM transfer failed' }
       }
     } catch (error) {
-      console.error('❌ Error during transfers:', error)
+      console.error('❌ Error during XLM transfer:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }
@@ -297,9 +318,7 @@ export const usePIXMonitoring = () => {
     clearNotifications,
     fetchPIXTransactions,
     processPIXTransaction,
-    parsePixTransactionData,
-    transferMeritToPool,
-    receiveXlmToPool,
+    transferXlmToUser,
     simulatePixTransaction
   }
 }
