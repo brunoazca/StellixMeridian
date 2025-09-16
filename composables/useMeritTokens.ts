@@ -1,10 +1,12 @@
 import { ref, computed, watch } from 'vue'
 import { useFreighter } from './useFreighter'
+import { useBalanceTracker } from './useBalanceTracker'
 import * as StellarSdk from '@stellar/stellar-sdk'
 
 export const useMeritTokens = () => {
   // Composables
   const { address, isWalletConnected, currentNetwork } = useFreighter()
+  const { trackMeritIncrease, trackMeritDecrease } = useBalanceTracker()
 
   // State
   const meritBalance = ref(0)
@@ -139,6 +141,41 @@ export const useMeritTokens = () => {
     fetchMeritBalance()
   }
 
+  // Simulate MERIT balance changes for PIX transactions
+  const simulateMeritIncrease = (xlmAmount: number) => {
+    const meritEarnings = xlmAmount * 0.02 // 2% of XLM as MERIT
+    const newBalance = meritBalance.value + meritEarnings
+    
+    console.log(`💎 Simulating MERIT increase:`)
+    console.log(`  - XLM amount: ${xlmAmount.toFixed(7)} XLM`)
+    console.log(`  - MERIT earned: ${meritEarnings.toFixed(2)} tokens`)
+    console.log(`  - Old balance: ${meritBalance.value.toFixed(2)} MERIT`)
+    console.log(`  - New balance: ${newBalance.toFixed(2)} MERIT`)
+    
+    meritBalance.value = newBalance
+    
+    // Track the change for display on home screen
+    trackMeritIncrease(meritEarnings)
+    
+    return meritEarnings
+  }
+
+  const simulateMeritDecrease = (meritAmount: number) => {
+    const newBalance = Math.max(0, meritBalance.value - meritAmount)
+    
+    console.log(`💸 Simulating MERIT decrease:`)
+    console.log(`  - MERIT spent: ${meritAmount.toFixed(2)} tokens`)
+    console.log(`  - Old balance: ${meritBalance.value.toFixed(2)} MERIT`)
+    console.log(`  - New balance: ${newBalance.toFixed(2)} MERIT`)
+    
+    meritBalance.value = newBalance
+    
+    // Track the change for display on home screen
+    trackMeritDecrease(meritAmount)
+    
+    return meritAmount
+  }
+
   // Watchers
   watch(() => address.value, (newAddress) => {
     if (newAddress) {
@@ -170,6 +207,8 @@ export const useMeritTokens = () => {
     error,
     formatMeritBalance,
     refreshBalance,
-    fetchMeritBalance
+    fetchMeritBalance,
+    simulateMeritIncrease,
+    simulateMeritDecrease
   }
 }

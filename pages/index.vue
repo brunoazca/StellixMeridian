@@ -20,13 +20,13 @@
           <div class="balance-section">
             <h2 class="balance-label">Available Balance</h2>
             <div class="balance-amount">
-              <span class="balance-value">{{ formatBalance(xlmBalance) }}</span>
+              <span class="balance-value">{{ formatBalance(adjustedXLMBalance) }}</span>
               <span class="balance-currency"> XLM</span>
             </div>
-            <div class="balance-fiat">{{ formatBRL(xlmBalanceBRL) }}</div>
+            <div class="balance-fiat">{{ formatBRL(adjustedXLMBalanceBRL) }}</div>
             <button class="merit-tokens-button">
               <img src="/images/MERIT.png" alt="MERIT Token" class="merit-icon" />
-              {{ formatMeritBalance(meritBalance) }} Merit Tokens
+              {{ formatMeritBalance(adjustedMeritBalance) }} Merit Tokens
             </button>
           </div>
 
@@ -36,7 +36,7 @@
               <div class="status-indicator" :class="{ active: isMonitoring }">
                 <span class="status-dot"></span>
                 <span class="status-text">
-                  {{ isMonitoring ? 'Monitoring PIX' : 'PIX Monitoring Off' }}
+                  {{ isMonitoring ? 'Monitorando PIX' : 'Monitoramento PIX inativo' }}
                 </span>
               </div>
               <div v-if="receivedPIXNotifications.length > 0" class="notifications-badge">
@@ -45,6 +45,29 @@
             </div>
             <div v-if="monitoringError" class="monitoring-error">
               ⚠️ {{ monitoringError }}
+            </div>
+            
+            <!-- PIX Notifications -->
+            <div v-if="receivedPIXNotifications.length > 0" class="pix-notifications">
+              <h3 class="notifications-title">PIX Recebidos</h3>
+              <div class="notifications-list">
+                <div 
+                  v-for="notification in receivedPIXNotifications.slice(0, 3)" 
+                  :key="notification.id"
+                  class="notification-item"
+                >
+                  <div class="notification-content">
+                    <div class="notification-amount">R$ {{ notification.amount.toFixed(2) }}</div>
+                    <div class="notification-details">
+                      <span class="notification-sender">{{ notification.sender }}</span>
+                      <span class="notification-date">{{ new Date(notification.timestamp).toLocaleString('pt-BR') }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button v-if="receivedPIXNotifications.length > 0" class="clear-notifications" @click="clearNotifications">
+                Limpar notificações
+              </button>
             </div>
           </div>
 
@@ -63,10 +86,13 @@
           <!-- Development Tools -->
           <div class="dev-tools">
             <h3 class="dev-title">Development Tools</h3>
-            <button class="dev-button" @click="simulatePixTransaction()">
-              🧪 Simulate PIX Transaction
+            <button class="dev-button" @click="testSimulation">
+              🧪 Simulate PIX Received
             </button>
-            <p class="dev-note">Simulates a PIX transaction with MERIT transfers</p>
+            <button class="dev-button reset-button" @click="clearStoredChanges">
+              🗑️ Clear Balance Changes
+            </button>
+            <p class="dev-note">Simula recebimento de PIX e atualiza saldos automaticamente</p>
           </div>
 
           <!-- Wallet Info Section -->
@@ -118,30 +144,51 @@ import Dropdown from '~/components/Dropdown.vue'
 
 // Composables
 const { isWalletConnected, disconnectFreighter, address, currentNetwork, switchToNetwork } = useFreighter()
-const { xlmBalance, xlmBalanceBRL, formatBalance, formatBRL } = useXLMBalance()
-const { meritBalance, formatMeritBalance } = useMeritTokens()
+const { xlmBalance, xlmBalanceBRL, formatBalance, formatBRL, simulateXLMIncrease, simulateXLMDecrease } = useXLMBalance()
+const { meritBalance, formatMeritBalance, simulateMeritIncrease, simulateMeritDecrease } = useMeritTokens()
+
+// Local balance adjustments
+const getStoredBalanceChanges = () => {
+  try {
+    const stored = localStorage.getItem('stellix_balance_changes')
+    return stored ? JSON.parse(stored) : []
+  } catch (error) {
+    console.error('Error reading stored balance changes:', error)
+    return []
+  }
+}
+
+const calculateTotalBalanceChanges = () => {
+  const changes = getStoredBalanceChanges()
+  return changes.reduce((totals, change) => {
+    totals.xlm += change.xlmChange || 0
+    totals.merit += change.meritChange || 0
+    return totals
+  }, { xlm: 0, merit: 0 })
+}
+
+// Adjusted balances (original + local changes)
+const adjustedXLMBalance = computed(() => {
+  const changes = calculateTotalBalanceChanges()
+  const adjusted = xlmBalance.value + changes.xlm
+  console.log(`📊 XLM Balance: ${xlmBalance.value} + ${changes.xlm} = ${adjusted}`)
+  return Math.max(0, adjusted) // Never go below 0
+})
+
+const adjustedMeritBalance = computed(() => {
+  const changes = calculateTotalBalanceChanges()
+  const adjusted = meritBalance.value + changes.merit
+  console.log(`📊 MERIT Balance: ${meritBalance.value} + ${changes.merit} = ${adjusted}`)
+  return Math.max(0, adjusted) // Never go below 0
+})
+
+const adjustedXLMBalanceBRL = computed(() => {
+  return adjustedXLMBalance.value * 2.70 // Same conversion rate
+})
 
 // Network selection
 const selectedNetwork = ref(currentNetwork.value || 'TESTNET')
 
-// Debug: verificar se isWalletConnected está mudando
-watch(isWalletConnected, (newValue) => {
-  console.log('🔄 isWalletConnected mudou para:', newValue)
-}, { immediate: true })
-
-// Watch for network changes
-watch(currentNetwork, (newNetwork) => {
-  selectedNetwork.value = newNetwork
-  console.log('🌐 Rede mudou para:', newNetwork)
-})
-
-// Watch for dropdown changes
-watch(selectedNetwork, async (newNetwork) => {
-  if (newNetwork !== currentNetwork.value) {
-    console.log('🔄 Trocando rede via dropdown:', newNetwork)
-    await switchToNetwork(newNetwork)
-  }
-})
 const { 
   isProcessingPix, 
   openMakePix, 
@@ -162,7 +209,83 @@ const {
   simulatePixTransaction
 } = usePIXMonitoring()
 
+// Debug: verificar se isWalletConnected está mudando
+watch(isWalletConnected, (newValue) => {
+  console.log('🔄 isWalletConnected mudou para:', newValue)
+  
+  // Start PIX monitoring when wallet is connected
+  if (newValue && address.value) {
+    console.log('🔍 Starting PIX monitoring for wallet:', address.value)
+    startMonitoring()
+  } else if (!newValue) {
+    console.log('⏹️ Stopping PIX monitoring - wallet disconnected')
+    stopMonitoring()
+  }
+}, { immediate: true })
+
+// Watch for network changes
+watch(currentNetwork, (newNetwork) => {
+  selectedNetwork.value = newNetwork
+  console.log('🌐 Rede mudou para:', newNetwork)
+})
+
+// Watch for dropdown changes
+watch(selectedNetwork, async (newNetwork) => {
+  if (newNetwork !== currentNetwork.value) {
+    console.log('🔄 Trocando rede via dropdown:', newNetwork)
+    await switchToNetwork(newNetwork)
+  }
+})
+
+
 // Methods
+const testSimulation = () => {
+  console.log('🧪 Testing simulation button clicked')
+  console.log('📊 Current balances:', {
+    xlm: adjustedXLMBalance.value,
+    merit: adjustedMeritBalance.value
+  })
+  
+  // Simulate receiving R$ 100 via PIX
+  const brlAmount = 100.00
+  console.log(`💰 Simulating PIX received: R$ ${brlAmount}`)
+  
+  // Calculate changes
+  const xlmGained = brlAmount * 0.37 // R$ to XLM conversion
+  const meritEarned = xlmGained * 0.02 // 2% MERIT earnings
+  
+  // Save the balance change locally
+  const changes = getStoredBalanceChanges()
+  const newChange = {
+    id: `PIX_RECEIVED_${Date.now()}`,
+    type: 'PIX_RECEIVED',
+    xlmChange: xlmGained,
+    meritChange: meritEarned,
+    brlAmount: brlAmount,
+    timestamp: new Date().toISOString()
+  }
+  changes.push(newChange)
+  localStorage.setItem('stellix_balance_changes', JSON.stringify(changes))
+  
+  console.log('✅ Simulation completed!')
+  console.log('📊 New balances:', {
+    xlm: adjustedXLMBalance.value,
+    merit: adjustedMeritBalance.value,
+    xlmGained: xlmGained,
+    meritEarned: meritEarned
+  })
+  console.log('💾 Saved balance change:', newChange)
+}
+
+const clearStoredChanges = () => {
+  localStorage.removeItem('stellix_balance_changes')
+  console.log('🗑️ Cleared all stored balance changes')
+  console.log('📊 Reset to original balances:', {
+    xlm: xlmBalance.value,
+    merit: meritBalance.value
+  })
+}
+
 const copyAddress = async () => {
   if (address.value) {
     try {
@@ -641,6 +764,16 @@ html, body {
   transform: translateY(0);
 }
 
+.reset-button {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+.reset-button:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+}
+
 .dev-note {
   font-family: 'Inter', sans-serif;
   font-size: 0.75rem;
@@ -649,4 +782,5 @@ html, body {
   margin: 0;
   opacity: 0.8;
 }
+
 </style>

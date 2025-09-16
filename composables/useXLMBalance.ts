@@ -1,11 +1,13 @@
 import { ref, computed, watch } from 'vue'
 import { useFreighter } from './useFreighter'
 import { usePrices } from './usePrices'
+import { useBalanceTracker } from './useBalanceTracker'
 
 export const useXLMBalance = () => {
   // Composables
   const { address, isWalletConnected, currentNetwork } = useFreighter()
   const { xlmPriceUSD, xlmPriceBRL, formatUSD, formatBRL, fetchXLMPrices } = usePrices()
+  const { trackXLMIncrease, trackXLMDecrease } = useBalanceTracker()
 
   // State
   const xlmBalance = ref(0)
@@ -21,6 +23,43 @@ export const useXLMBalance = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 7
     }).format(balance)
+  }
+
+  // Simulate XLM balance changes for PIX transactions
+  const simulateXLMIncrease = (brlAmount: number) => {
+    const xlmAmount = brlAmount * 0.37 // BRL to XLM conversion
+    const newBalance = xlmBalance.value + xlmAmount
+    
+    console.log(`💰 Simulating XLM increase:`)
+    console.log(`  - PIX received: R$ ${brlAmount.toFixed(2)}`)
+    console.log(`  - XLM gained: ${xlmAmount.toFixed(7)} XLM`)
+    console.log(`  - Old balance: ${xlmBalance.value.toFixed(7)} XLM`)
+    console.log(`  - New balance: ${newBalance.toFixed(7)} XLM`)
+    
+    xlmBalance.value = newBalance
+    
+    // Track the change for display on home screen
+    trackXLMIncrease(xlmAmount, brlAmount)
+    
+    return xlmAmount
+  }
+
+  const simulateXLMDecrease = (brlAmount: number) => {
+    const xlmAmount = brlAmount * 0.37 // BRL to XLM conversion
+    const newBalance = Math.max(0, xlmBalance.value - xlmAmount)
+    
+    console.log(`💸 Simulating XLM decrease:`)
+    console.log(`  - PIX sent: R$ ${brlAmount.toFixed(2)}`)
+    console.log(`  - XLM spent: ${xlmAmount.toFixed(7)} XLM`)
+    console.log(`  - Old balance: ${xlmBalance.value.toFixed(7)} XLM`)
+    console.log(`  - New balance: ${newBalance.toFixed(7)} XLM`)
+    
+    xlmBalance.value = newBalance
+    
+    // Track the change for display on home screen
+    trackXLMDecrease(xlmAmount, brlAmount)
+    
+    return xlmAmount
   }
 
   const fetchXLMBalance = async () => {
@@ -112,6 +151,8 @@ export const useXLMBalance = () => {
     formatBalance,
     formatUSD,
     formatBRL,
-    refreshBalance
+    refreshBalance,
+    simulateXLMIncrease,
+    simulateXLMDecrease
   }
 }

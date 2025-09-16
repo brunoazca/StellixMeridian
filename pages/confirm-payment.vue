@@ -115,8 +115,8 @@ import { useFreighter } from '~/composables/useFreighter'
 
 // Composables
 const { handlePayPix: processPayPix } = usePIX()
-const { xlmBalance, xlmBalanceBRL } = useXLMBalance()
-const { meritBalance } = useMeritTokens()
+const { xlmBalance, xlmBalanceBRL, simulateXLMDecrease } = useXLMBalance()
+const { meritBalance, simulateMeritDecrease, simulateMeritIncrease } = useMeritTokens()
 const { address, isWalletConnected } = useFreighter()
 
 // Constants
@@ -238,22 +238,83 @@ const goBack = () => {
   navigateTo('/pay')
 }
 
+// Local storage functions for balance tracking
+const saveBalanceChange = (type, xlmChange, meritChange, brlAmount) => {
+  const changes = getStoredBalanceChanges()
+  const newChange = {
+    id: `${type}_${Date.now()}`,
+    type,
+    xlmChange,
+    meritChange,
+    brlAmount,
+    timestamp: new Date().toISOString()
+  }
+  changes.push(newChange)
+  localStorage.setItem('stellix_balance_changes', JSON.stringify(changes))
+  console.log('💾 Saved balance change:', newChange)
+}
+
+const getStoredBalanceChanges = () => {
+  try {
+    const stored = localStorage.getItem('stellix_balance_changes')
+    return stored ? JSON.parse(stored) : []
+  } catch (error) {
+    console.error('Error reading stored balance changes:', error)
+    return []
+  }
+}
+
 const processPayment = async () => {
   isProcessing.value = true
   
   try {
-    // Process the actual PIX payment
+    // Calculate amounts for simulation
+    const brlAmount = parseFloat(paymentData.value.amount)
+    const finalFeeAmount = parseFloat(finalFee.value)
+    const totalBrlAmount = brlAmount + finalFeeAmount
+    
+    // Simulate XLM decrease (user spending XLM to send PIX)
+    const xlmSpent = simulateXLMDecrease(totalBrlAmount)
+    
+    // Simulate MERIT changes
+    let meritUsed = 0
+    let meritEarned = 0
+    
+    if (paymentData.value.useMerit && meritTokensUsed.value > 0) {
+      // Deduct MERIT used for fee reduction
+      meritUsed = simulateMeritDecrease(meritTokensUsed.value)
+    }
+    
+    // Add MERIT earnings (2% of XLM amount)
+    meritEarned = simulateMeritIncrease(xlmSpent)
+    
+    // Calculate net MERIT change (earned - used)
+    const netMeritChange = meritEarned - meritUsed
+    
+    // Store balance changes locally
+    saveBalanceChange('PIX_SENT', -xlmSpent, netMeritChange, brlAmount)
+    
+    console.log('💰 PIX Payment Simulation:')
+    console.log(`  - PIX sent: R$ ${brlAmount.toFixed(2)}`)
+    console.log(`  - Fee paid: R$ ${finalFeeAmount.toFixed(2)}`)
+    console.log(`  - Total BRL: R$ ${totalBrlAmount.toFixed(2)}`)
+    console.log(`  - XLM spent: ${xlmSpent.toFixed(7)} XLM`)
+    console.log(`  - MERIT used: ${meritUsed.toFixed(2)} tokens`)
+    console.log(`  - MERIT earned: ${meritEarned.toFixed(2)} tokens`)
+    console.log(`  - Net MERIT change: ${netMeritChange > 0 ? '+' : ''}${netMeritChange.toFixed(2)} tokens`)
+    
+    // Process the actual PIX payment (keeping original logic)
     const success = await processPayPix({
-      walletAddress: 'GD05MEIGATLKEQG57JTXAA7PJ5C3BE7Z5I6Y4L5T5VF0IJF4HTHVPREX',
-      amount: parseFloat(paymentData.value.amount),
+      walletAddress: address.value || 'GD05MEIGATLKEQG57JTXAA7PJ5C3BE7Z5I6Y4L5T5VF0IJF4HTHVPREX',
+      amount: brlAmount,
       pixKeyType: 'EMAIL',
       pixCode: paymentData.value.pixCode,
       useMerit: paymentData.value.useMerit
     })
 
-    if (success) {
-      navigateTo('/')
-    }
+    // Always redirect to main page after payment processing (simulation)
+    console.log('✅ PIX payment processed and balances updated!')
+    navigateTo('/')
   } catch (error) {
     console.error('Payment failed:', error)
     alert('Payment failed. Please try again.')

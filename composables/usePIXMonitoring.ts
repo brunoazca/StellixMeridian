@@ -225,44 +225,59 @@ export const usePIXMonitoring = () => {
     }
   }
 
+  // Local storage functions for balance tracking
+  const saveBalanceChange = (type: any, xlmChange: any, meritChange: any, brlAmount: any) => {
+    try {
+      const stored = localStorage.getItem('stellix_balance_changes')
+      const changes = stored ? JSON.parse(stored) : []
+      const newChange = {
+        id: `${type}_${Date.now()}`,
+        type,
+        xlmChange,
+        meritChange,
+        brlAmount,
+        timestamp: new Date().toISOString()
+      }
+      changes.push(newChange)
+      localStorage.setItem('stellix_balance_changes', JSON.stringify(changes))
+      console.log('💾 Saved balance change:', newChange)
+      return newChange
+    } catch (error) {
+      console.error('Error saving balance change:', error)
+      return null
+    }
+  }
+
   // PROTOTYPE: Transfer XLM to user when PIX is received
   const transferXlmToUser = async (pixTransaction: any) => {
     console.log('🔄 [PROTOTYPE] Transferring XLM to user...')
     console.log(`  - PIX amount received: R$ ${pixTransaction.value?.toFixed(2) || '0.00'}`)
     
+    const brlAmount = pixTransaction.value || 0
+    
     // Convert BRL to XLM (approximate rate: 1 BRL = 0.37 XLM)
-    const xlmAmount = (pixTransaction.value || 0) * 0.37
+    const xlmAmount = brlAmount * 0.37
     console.log(`  - XLM to transfer: ${xlmAmount.toFixed(7)} XLM`)
     
-    // TODO: Get user wallet address from database/session storage
-    // For now, using a placeholder
-    const userWalletAddress = 'USER_WALLET_ADDRESS_HERE'
-    console.log(`  - To wallet: ${userWalletAddress}`)
+    // Calculate MERIT earnings (2% of XLM amount)
+    const meritEarnings = xlmAmount * 0.02
+    console.log(`  - MERIT to earn: ${meritEarnings.toFixed(2)} tokens`)
     
-    // TODO: Implement actual XLM transfer using pool's private key
-    // const sourceAccount = await horizonServer.loadAccount(poolAddress)
-    // const transaction = new TransactionBuilder(sourceAccount, {
-    //   fee: StellarSdk.BASE_FEE,
-    //   networkPassphrase: Networks.TESTNET
-    // })
-    // .addOperation(Operation.payment({
-    //   destination: userWalletAddress,
-    //   asset: Asset.native(),
-    //   amount: xlmAmount.toString()
-    // }))
-    // .setTimeout(30)
-    // .build()
-    // 
-    // transaction.sign(poolKeypair)
-    // const result = await horizonServer.submitTransaction(transaction)
+    // Save balance changes locally (this will update the Available Balance)
+    const balanceChange = saveBalanceChange('PIX_RECEIVED', xlmAmount, meritEarnings, brlAmount)
     
-    console.log('✅ [PROTOTYPE] XLM transfer completed successfully')
+    console.log('✅ [SIMULATION] XLM and MERIT added to local balance')
+    console.log(`  - XLM gained: +${xlmAmount.toFixed(7)} XLM`)
+    console.log(`  - MERIT earned: +${meritEarnings.toFixed(2)} tokens`)
+    console.log(`  - PIX amount: R$ ${brlAmount.toFixed(2)}`)
+    
     return {
       success: true,
       txHash: `XLM_TRANSFER_${Date.now()}`,
       xlmAmount: xlmAmount,
-      brlAmount: pixTransaction.value || 0,
-      userWallet: userWalletAddress,
+      meritEarnings: meritEarnings,
+      brlAmount: brlAmount,
+      balanceChange: balanceChange,
       timestamp: new Date().toISOString()
     }
   }
@@ -278,15 +293,16 @@ export const usePIXMonitoring = () => {
       const transferResult = await transferXlmToUser(pixTransaction)
       
       if (transferResult.success) {
-        console.log('🎉 XLM transfer completed successfully!')
-        console.log('  - XLM transferred:', transferResult.xlmAmount.toFixed(7), 'XLM')
-        console.log('  - Transaction hash:', transferResult.txHash)
-        console.log('  - To wallet:', transferResult.userWallet)
+        console.log('🎉 PIX processed and balance updated!')
+        console.log('  - XLM added:', transferResult.xlmAmount.toFixed(7), 'XLM')
+        console.log('  - MERIT earned:', transferResult.meritEarnings.toFixed(2), 'tokens')
+        console.log('  - PIX amount:', `R$ ${transferResult.brlAmount.toFixed(2)}`)
+        console.log('  - Balance change ID:', transferResult.balanceChange?.id)
         
         return {
           success: true,
           xlmTransfer: transferResult,
-          message: 'XLM transferred to user wallet automatically'
+          message: 'XLM and MERIT balances updated automatically'
         }
       } else {
         console.error('❌ XLM transfer failed')
