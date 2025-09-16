@@ -1,0 +1,236 @@
+#![no_std]
+
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, panic_with_error, symbol_short, Address,
+    Env, Vec,
+};
+
+#[derive(Clone)]
+#[contracttype]
+pub struct Config {
+    pub admin: Address,
+    pub rewards_pool: Address,
+    pub charity: Address,
+    pub buy_fee_ppm: i128,
+    pub sell_fee_ppm: i128,
+    pub burn_ppm: i128,
+    pub paused: bool,
+    pub name: soroban_sdk::String,
+    pub symbol: soroban_sdk::String,
+    pub decimals: u32,
+    pub total_supply: i128,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+#[contracttype]
+enum DataKey {
+    Cfg,
+    Balance(Address),
+    Allowance(Address, Address),
+}
+
+#[contracterror]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Error {
+    AlreadyInitialized = 1,
+    NotInitialized = 2,
+    NotAdmin = 3,
+    InvalidPpm = 4,
+    Paused = 5,
+    InvalidAmount = 6,
+    InsufficientBalance = 7,
+    InsufficientAllowance = 8,
+}
+
+#[contract]
+pub struct MeritToken;
+
+#[contractimpl]
+impl MeritToken {
+    // ---------- Inicialização ----------
+    pub fn init(
+        e: Env,
+        admin: Address,
+        rewards_pool: Address,
+        charity: Address,
+        name: soroban_sdk::String,
+        symbol: soroban_sdk::String,
+        decimals: u32,
+        initial_supply: i128,
+        buy_fee_ppm: i128,
+        sell_fee_ppm: i128,
+        burn_ppm: i128,
+    ) {
+        if e.storage().instance().has(&DataKey::Cfg) {
+            panic_with_error!(&e, Error::AlreadyInitialized);
+        }
+
+        admin.require_auth();
+        Self::assert_ppm(&e, buy_fee_ppm);
+        Self::assert_ppm(&e, sell_fee_ppm);
+        Self::assert_ppm(&e, burn_ppm);
+
+        let cfg = Config {
+            admin: admin.clone(),
+            rewards_pool,
+            charity,
+            buy_fee_ppm,
+            sell_fee_ppm,
+            burn_ppm,
+            paused: false,
+            name,
+            symbol,
+            decimals,
+            total_supply: initial_supply,
+        };
+
+        e.storage().instance().set(&DataKey::Cfg, &cfg);
+        e.storage().instance().set(&DataKey::Balance(admin.clone()), &initial_supply);
+
+        e.events().publish(
+            (symbol_short!("INIT"), admin),
+            "MeritToken initialized",
+        );
+    }
+
+    // ---------- Padrão SEP-41 ----------
+    pub fn name(e: Env) -> soroban_sdk::String {
+        Self::must_get_cfg(&e).name
+    }
+    pub fn symbol(e: Env) -> soroban_sdk::String {
+        Self::must_get_cfg(&e).symbol
+    }
+    pub fn decimals(e: Env) -> u32 {
+        Self::must_get_cfg(&e).decimals
+    }
+    pub fn total_supply(e: Env) -> i128 {
+        Self::must_get_cfg(&e).total_supply
+    }
+    pub fn balance(e: Env, id: Address) -> i128 {
+        e.storage().instance().get(&DataKey::Balance(id)).unwrap_or(0)
+    }
+    pub fn allowance(e: Env, from: Address, spender: Address) -> i128 {
+        e.storage().instance().get(&DataKey::Allowance(from, spender)).unwrap_or(0)
+    }
+
+    pub fn approve(e: Env, from: Address, spender: Address, amount: i128) {
+        from.require_auth();
+        e.storage().instance().set(&DataKey::Allowance(from, spender), &amount);
+    }
+
+    pub fn transfer(e: Env, from: Address, to: Address, amount: i128, is_buy: bool) {
+        let mut cfg = Self::must_get_cfg(&e);
+        if cfg.paused {
+            panic_with_error!(&e, Error::Paused);
+        }
+        if amount <= 0 {
+            panic_with_error!(&e, Error::InvalidAmount);
+        }
+
+        from.require_auth();
+
+        let ppm = if is_buy { cfg.buy_fee_ppm } else { cfg.sell_fee_ppm };
+        let tax = amount * ppm / 1_000_000;
+        let to_burn = tax * cfg.burn_ppm / 1_000_000;
+        let rest = tax - to_burn;
+        let to_rewards = rest / 2;
+        let to_charity = rest - to_rewards;
+        let net = amount - tax;
+
+        Self::sub_balance(&e, &from, amount);
+        Self::add_balance(&e, &to, net);
+        if to_rewards > 0 {
+            Self::add_balance(&e, &cfg.rewards_pool, to_rewards);
+        }
+        if to_charity > 0 {
+            Self::add_balance(&e, &cfg.charity, to_charity);
+        }
+        if to_burn > 0 {
+            cfg.total_supply -= to_burn;
+            e.storage().instance().set(&DataKey::Cfg, &cfg);
+        }
+
+        e.events().publish(
+            (symbol_short!("FEE"), from.clone()),
+            Self::vec3(&e, to_rewards, to_charity, to_burn),
+        );
+        e.events().publish(
+            (symbol_short!("TRANSFER"), from),
+            Self::vec3(&e, net, tax, amount),
+        );
+    }
+
+    pub fn transfer_from(
+        e: Env,
+        spender: Address,
+        from: Address,
+        to: Address,
+        amount: i128,
+        is_buy: bool,
+    ) {
+        let allowance = Self::allowance(e.clone(), from.clone(), spender.clone());
+        if allowance < amount {
+            panic_with_error!(&e, Error::InsufficientAllowance);
+        }
+        spender.require_auth();
+        Self::approve(e.clone(), from.clone(), spender.clone(), allowance - amount);
+        Self::transfer(e, from, to, amount, is_buy);
+    }
+
+    // ---------- Admin ----------
+    pub fn set_fees(e: Env, buy_fee_ppm: i128, sell_fee_ppm: i128, burn_ppm: i128) {
+        let mut cfg = Self::must_get_cfg(&e);
+        cfg.admin.require_auth();
+        Self::assert_ppm(&e, buy_fee_ppm);
+        Self::assert_ppm(&e, sell_fee_ppm);
+        Self::assert_ppm(&e, burn_ppm);
+        cfg.buy_fee_ppm = buy_fee_ppm;
+        cfg.sell_fee_ppm = sell_fee_ppm;
+        cfg.burn_ppm = burn_ppm;
+        e.storage().instance().set(&DataKey::Cfg, &cfg);
+    }
+    pub fn set_pools(e: Env, rewards_pool: Address, charity: Address) {
+        let mut cfg = Self::must_get_cfg(&e);
+        cfg.admin.require_auth();
+        cfg.rewards_pool = rewards_pool;
+        cfg.charity = charity;
+        e.storage().instance().set(&DataKey::Cfg, &cfg);
+    }
+    pub fn set_paused(e: Env, paused: bool) {
+        let mut cfg = Self::must_get_cfg(&e);
+        cfg.admin.require_auth();
+        cfg.paused = paused;
+        e.storage().instance().set(&DataKey::Cfg, &cfg);
+    }
+
+    // ---------- Helpers ----------
+    fn must_get_cfg(e: &Env) -> Config {
+        match e.storage().instance().get::<_, Config>(&DataKey::Cfg) {
+            Some(c) => c,
+            None => panic_with_error!(e, Error::NotInitialized),
+        }
+    }
+    fn assert_ppm(e: &Env, v: i128) {
+        if v < 0 || v > 1_000_000 {
+            panic_with_error!(e, Error::InvalidPpm);
+        }
+    }
+    fn sub_balance(e: &Env, id: &Address, amount: i128) {
+        let bal = Self::balance(e.clone(), id.clone());
+        if bal < amount {
+            panic_with_error!(&e, Error::InsufficientBalance);
+        }
+        e.storage().instance().set(&DataKey::Balance(id.clone()), &(bal - amount));
+    }
+    fn add_balance(e: &Env, id: &Address, amount: i128) {
+        let bal = Self::balance(e.clone(), id.clone());
+        e.storage().instance().set(&DataKey::Balance(id.clone()), &(bal + amount));
+    }
+    fn vec3(e: &Env, a: i128, b: i128, c: i128) -> Vec<i128> {
+        let mut v = Vec::new(e);
+        v.push_back(a);
+        v.push_back(b);
+        v.push_back(c);
+        v
+    }
+}

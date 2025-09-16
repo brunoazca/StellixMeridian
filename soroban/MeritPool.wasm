@@ -1,0 +1,295 @@
+#![no_std]
+use soroban_sdk::{
+    contract, contractimpl, contracttype, symbol_short, Address, Env, Map, Symbol,
+    token::Client as TokenClient,
+};
+
+// ---------- Keys ----------
+const CFG: Symbol = symbol_short!("CFG");
+const FCR: Symbol = symbol_short!("FCR"); // fee credit por usuário
+const VOL: Symbol = symbol_short!("VOL"); // volume de XLM depositado por usuário
+
+// ---------- Config ----------
+#[derive(Clone)]
+#[contracttype]
+pub struct Config {
+    pub admin: Address,
+    pub sponsor: Address,
+    pub merit: Address, // contrato do token MERIT
+    pub xlm: Address,   // contrato do token XLM (wrapped) na rede
+    pub cashback_percent: i128, // 0..=100 (% inteiro)
+}
+
+#[contract]
+pub struct MeritPool;
+
+#[contractimpl]
+impl MeritPool {
+    // ---------- Init ----------
+    pub fn init(
+        e: Env,
+        admin: Address,
+        sponsor: Address,
+        merit: Address,
+        xlm: Address,
+        cashback_percent: i128,
+    ) {
+        admin.require_auth();
+        if cashback_percent < 0 || cashback_percent > 100 {
+            panic!("Invalid percent");
+        }
+
+        let cfg = Config {
+            admin,
+            sponsor,
+            merit,
+            xlm,
+            cashback_percent,
+        };
+
+        e.storage().instance().set(&CFG, &cfg);
+        e.storage().instance().set(&FCR, &Map::<Address, i128>::new(&e));
+        e.storage().instance().set(&VOL, &Map::<Address, i128>::new(&e));
+
+        e.events().publish((symbol_short!("INIT"),), "MeritPool initialized");
+    }
+
+    // ---------- Helpers ----------
+    fn cfg(e: &Env) -> Config {
+        e.storage()
+            .instance()
+            .get::<_, Config>(&CFG)
+            .expect("Pool not initialized")
+    }
+
+    fn must_admin(e: &Env) {
+        let cfg = Self::cfg(e);
+        cfg.admin.require_auth();
+    }
+
+    fn must_sponsor(e: &Env) {
+        let cfg = Self::cfg(e);
+        cfg.sponsor.require_auth();
+    }
+
+    fn vol_map(e: &Env) -> Map<Address, i128> {
+        e.storage()
+            .instance()
+            .get::<_, Map<Address, i128>>(&VOL)
+            .unwrap_or(Map::new(e))
+    }
+
+    fn fcr_map(e: &Env) -> Map<Address, i128> {
+        e.storage()
+            .instance()
+            .get::<_, Map<Address, i128>>(&FCR)
+            .unwrap_or(Map::new(e))
+    }
+
+    fn reward_user_merit(e: &Env, user: &Address, reward: i128) {
+        if reward <= 0 {
+            return;
+        }
+        let cfg = Self::cfg(e);
+        let merit = TokenClient::new(e, &cfg.merit);
+
+        let pool_addr = e.current_contract_address();
+        let balance = merit.balance(&pool_addr);
+        if balance <= 0 {
+            return;
+        }
+        let to_send = if balance < reward { balance } else { reward };
+        merit.transfer(&pool_addr, user, &to_send);
+
+        e.events()
+            .publish((symbol_short!("REWARD"), user.clone()), to_send);
+    }
+
+    fn add_volume(e: &Env, user: &Address, xlm_amount: i128) {
+        let mut vol = Self::vol_map(e);
+        let cur = vol.get(user.clone()).unwrap_or(0);
+        vol.set(user.clone(), cur + xlm_amount);
+        e.storage().instance().set(&VOL, &vol);
+    }
+
+    fn add_fee_credit(e: &Env, user: &Address, units: i128) {
+        let mut fcr = Self::fcr_map(e);
+        let cur = fcr.get(user.clone()).unwrap_or(0);
+        fcr.set(user.clone(), cur + units);
+        e.storage().instance().set(&FCR, &fcr);
+    }
+
+    fn sub_fee_credit(e: &Env, user: &Address, units: i128) -> bool {
+        let mut fcr = Self::fcr_map(e);
+        let cur = fcr.get(user.clone()).unwrap_or(0);
+        if cur < units {
+            return false;
+        }
+        fcr.set(user.clone(), cur - units);
+        e.storage().instance().set(&FCR, &fcr);
+        true
+    }
+
+    // ---------- Fluxos ----------
+    /// Admin paga XLM (do saldo da pool) para `to` e aplica cashback em MERIT.
+    pub fn send_payment_with_cashback(e: Env, to: Address, xlm_amount: i128) {
+        Self::must_admin(&e);
+        if xlm_amount <= 0 {
+            panic!("Invalid amount");
+        }
+
+        let cfg = Self::cfg(&e);
+        let xlm = TokenClient::new(&e, &cfg.xlm);
+        let pool_addr = e.current_contract_address();
+
+        xlm.transfer(&pool_addr, &to, &xlm_amount);
+
+        let reward = xlm_amount * cfg.cashback_percent / 100;
+        Self::reward_user_merit(&e, &to, reward);
+
+        Self::add_volume(&e, &to, xlm_amount);
+
+        e.events()
+            .publish((symbol_short!("PAYMENT"), to.clone()), (xlm_amount, reward));
+    }
+
+    /// Usuário deposita XLM (precisa approve) e recebe cashback em MERIT.
+    pub fn deposit_xlm(e: Env, user: Address, xlm_amount: i128) {
+        user.require_auth();
+        if xlm_amount <= 0 {
+            panic!("Invalid amount");
+        }
+
+        let cfg = Self::cfg(&e);
+        let xlm = TokenClient::new(&e, &cfg.xlm);
+        let pool_addr = e.current_contract_address();
+
+        // spender = contrato (pool)
+        xlm.transfer_from(&pool_addr, &user, &pool_addr, &xlm_amount);
+
+        let reward = xlm_amount * cfg.cashback_percent / 100;
+        Self::reward_user_merit(&e, &user, reward);
+
+        Self::add_volume(&e, &user, xlm_amount);
+
+        e.events()
+            .publish((symbol_short!("DEPOSIT"), user.clone()), (xlm_amount, reward));
+    }
+
+    /// Cobra taxa em MERIT do usuário para o pool (precisa approve).
+    pub fn pay_fee_with_merit(e: Env, user: Address, amount: i128) {
+        if amount <= 0 {
+            panic!("Invalid amount");
+        }
+        let cfg = Self::cfg(&e);
+        let merit = TokenClient::new(&e, &cfg.merit);
+        let pool_addr = e.current_contract_address();
+
+        merit.transfer_from(&pool_addr, &user, &pool_addr, &amount);
+
+        e.events()
+            .publish((symbol_short!("FEEPAID"), user.clone()), amount);
+    }
+
+    /// Usuário envia MERIT ao admin e recebe crédito interno (FCR).
+    pub fn redeem_for_fee_credit(e: Env, user: Address, amount: i128) {
+        user.require_auth();
+        if amount <= 0 {
+            panic!("Invalid amount");
+        }
+
+        let cfg = Self::cfg(&e);
+        let merit = TokenClient::new(&e, &cfg.merit);
+
+        merit.transfer(&user, &cfg.admin, &amount);
+        Self::add_fee_credit(&e, &user, amount);
+
+        e.events()
+            .publish((symbol_short!("RFCR"), user.clone()), amount);
+    }
+
+    /// Sponsor consome créditos de taxa do usuário.
+    pub fn consume_fee_credit(e: Env, user: Address, units: i128) -> bool {
+        Self::must_sponsor(&e);
+        if units <= 0 {
+            return false;
+        }
+        let ok = Self::sub_fee_credit(&e, &user, units);
+        if ok {
+            e.events()
+                .publish((symbol_short!("CFCR"), user.clone()), units);
+        }
+        ok
+    }
+
+    // ---------- Auxiliares de approve ----------
+    pub fn approve_merit_spending(e: Env, user: Address, amount: i128) {
+        user.require_auth();
+        let cfg = Self::cfg(&e);
+        let merit = TokenClient::new(&e, &cfg.merit);
+        merit.approve(&user, &e.current_contract_address(), &amount, &0);
+    }
+
+    pub fn approve_xlm_spending(e: Env, user: Address, amount: i128) {
+        user.require_auth();
+        let cfg = Self::cfg(&e);
+        let xlm = TokenClient::new(&e, &cfg.xlm);
+        xlm.approve(&user, &e.current_contract_address(), &amount, &0);
+    }
+
+    // ---------- Getters / Admin ----------
+    pub fn volume_of(e: Env, user: Address) -> i128 {
+        let vol: Map<Address, i128> = e.storage().instance().get(&VOL).unwrap_or(Map::new(&e));
+        vol.get(user).unwrap_or(0)
+    }
+
+    pub fn fee_credit_of(e: Env, user: Address) -> i128 {
+        let f: Map<Address, i128> = e.storage().instance().get(&FCR).unwrap_or(Map::new(&e));
+        f.get(user).unwrap_or(0)
+    }
+
+    pub fn config(e: Env) -> Config {
+        Self::cfg(&e)
+    }
+
+    pub fn set_cashback_percent(e: Env, percent: i128) {
+        Self::must_admin(&e);
+        if percent < 0 || percent > 100 {
+            panic!("Invalid percent");
+        }
+        let mut cfg = Self::cfg(&e);
+        cfg.cashback_percent = percent;
+        e.storage().instance().set(&CFG, &cfg);
+        e.events().publish((symbol_short!("CASHBACK"),), percent);
+    }
+
+    /// Saldos do contrato (XLM e MERIT) sob custódia do pool.
+    pub fn get_balances(e: Env) -> (i128, i128) {
+        let cfg = Self::cfg(&e);
+        let xlm = TokenClient::new(&e, &cfg.xlm);
+        let merit = TokenClient::new(&e, &cfg.merit);
+        let pool_addr = e.current_contract_address();
+
+        let xlm_balance = xlm.balance(&pool_addr);
+        let merit_balance = merit.balance(&pool_addr);
+
+        (xlm_balance, merit_balance)
+    }
+
+    // ---------- Segurança ----------
+    /// Admin retira tokens (qualquer contrato SEP-41) do saldo da pool para `to`.
+    pub fn withdraw_admin(e: Env, token: Address, to: Address, amount: i128) {
+        Self::must_admin(&e);
+        if amount <= 0 {
+            panic!("Invalid amount");
+        }
+        let pool_addr = e.current_contract_address();
+        let t = TokenClient::new(&e, &token);
+        t.transfer(&pool_addr, &to, &amount);
+
+        e.events().publish(
+            (symbol_short!("WITHDRAW"), to.clone()),
+            (token, amount),
+        );
+    }
+}

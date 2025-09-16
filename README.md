@@ -21,7 +21,10 @@ Uma aplicação Web3 moderna que integra carteiras Stellar com funcionalidades P
 - **Design Responsivo**: Interface adaptável para desktop e mobile
 - **Tema Escuro**: Visual moderno e elegante
 - **Animações**: Transições suaves e feedback visual
-- **UX Otimizada**: Experiência de usuário intuitiva
+
+### Contratos Soroban
+- **2 Contratos de Regimento do Token e Transações**: pasta ./soroban/ 
+
 
 ## 🛠️ Tecnologias
 
