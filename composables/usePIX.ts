@@ -7,7 +7,7 @@ export const usePIX = () => {
   const isProcessingPix = ref(false)
 
   // Methods
-  const handleMakePix = async (data: { walletAddress: string; amount: number; recipient: string }) => {
+  const handleMakePix = async (data: { walletAddress: string; amount: number; recipientEmail: string; recipientName?: string }) => {
     isProcessingPix.value = true
     try {
       const response = await $fetch('/api/pix/make', {
@@ -16,7 +16,7 @@ export const usePIX = () => {
       })
 
       if (response.success) {
-        alert(`PIX realizado com sucesso!\nID: ${response.transactionId}`)
+        alert(`PIX realizado com sucesso!\nID: ${response.transactionId}\nValor: R$ ${response.amount}\nDestinatário: ${response.recipientEmail}`)
         showMakePix.value = false
         return true
       }

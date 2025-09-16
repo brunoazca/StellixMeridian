@@ -12,8 +12,12 @@
           <input v-model="makePixForm.amount" type="number" step="0.01" placeholder="0.00" />
         </div>
         <div class="form-group">
-          <label>Destinatário</label>
-          <input v-model="makePixForm.recipient" type="text" placeholder="Nome ou CPF" />
+          <label>Email do Destinatário</label>
+          <input v-model="makePixForm.recipientEmail" type="email" placeholder="destinatario@exemplo.com" />
+        </div>
+        <div class="form-group">
+          <label>Nome do Destinatário (opcional)</label>
+          <input v-model="makePixForm.recipientName" type="text" placeholder="Nome completo" />
         </div>
         <button @click="handleMakePix" :disabled="isProcessingPix" class="submit-button">
           <span v-if="isProcessingPix" class="loading-spinner">⏳</span>
@@ -68,7 +72,8 @@ const { address } = useFreighter()
 // State
 const makePixForm = ref({
   amount: '',
-  recipient: ''
+  recipientEmail: '',
+  recipientName: ''
 })
 
 const payPixForm = ref({
@@ -77,20 +82,31 @@ const payPixForm = ref({
 })
 
 // Methods
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
 const handleMakePix = async () => {
-  if (!makePixForm.value.amount || !makePixForm.value.recipient) {
-    alert('Preencha todos os campos')
+  if (!makePixForm.value.amount || !makePixForm.value.recipientEmail) {
+    alert('Preencha o valor e o email do destinatário')
+    return
+  }
+
+  if (!validateEmail(makePixForm.value.recipientEmail)) {
+    alert('Email inválido')
     return
   }
 
   emit('pix-success', 'make', {
     walletAddress: address.value,
     amount: parseFloat(makePixForm.value.amount),
-    recipient: makePixForm.value.recipient
+    recipientEmail: makePixForm.value.recipientEmail,
+    recipientName: makePixForm.value.recipientName
   })
 
   // Reset form
-  makePixForm.value = { amount: '', recipient: '' }
+  makePixForm.value = { amount: '', recipientEmail: '', recipientName: '' }
 }
 
 const handlePayPix = async () => {
