@@ -14,7 +14,7 @@ export const useMeritTokens = () => {
   const { meritBalance, isLoading, lastFetch, cacheTime } = globalMeritState
 
   // Contract ID do token MERIT (você precisa fornecer o correto)
-  const MERIT_CONTRACT_ID = 'CAWSBSNIP7KKATLMX3GCPVZ7RTUIOYLJG63HBCY22QAXZDVUEOSVTGOI' // Substitua pelo ID real
+  const MERIT_CONTRACT_ID = 'CCHWOS6BJWDT4LV5N2SHCDP6ARASCIVG2YXNTAVPC4AKYWVPPEPZJ3QI' // Substitua pelo ID real
 
   const fetchMeritBalance = async (forceRefresh = false) => {
     if (!address.value || !isWalletConnected.value) {
