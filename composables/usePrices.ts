@@ -7,11 +7,12 @@ const globalPricesState = {
   usdToBRL: ref(5.0),
   isLoading: ref(false),
   lastFetch: ref(0), // timestamp da última busca
-  cacheTime: 60000 // 1 minuto em ms
+  cacheTime: 60000, // 1 minuto em ms
+  hasValidData: ref(false) // indica se já conseguiu buscar dados válidos alguma vez
 }
 
 export const usePrices = () => {
-  const { xlmPriceUSD, xlmPriceBRL, usdToBRL, isLoading, lastFetch, cacheTime } = globalPricesState
+  const { xlmPriceUSD, xlmPriceBRL, usdToBRL, isLoading, lastFetch, cacheTime, hasValidData } = globalPricesState
 
   // Computed
   const xlmPriceBRLCalculated = computed(() => xlmPriceUSD.value * usdToBRL.value)
@@ -37,6 +38,7 @@ export const usePrices = () => {
         usdToBRL.value = response.exchange.usdToBRL
         xlmPriceBRL.value = response.calculated.xlmBRL
         lastFetch.value = now // Atualizar timestamp
+        hasValidData.value = true // Marcar que já temos dados válidos
         
         console.log('✅ Preços atualizados:', {
           xlmUSD: xlmPriceUSD.value,
@@ -49,11 +51,25 @@ export const usePrices = () => {
       
     } catch (error) {
       console.error('❌ Erro ao buscar preços:', error)
-      // Usar valores padrão em caso de erro
-      xlmPriceUSD.value = 0.12
-      xlmPriceBRL.value = 0.60
-      usdToBRL.value = 5.0
-      console.log('🔄 Usando preços padrão')
+      
+      // Se já temos dados válidos de antes, manter os valores atuais
+      if (hasValidData.value) {
+        console.log('🔄 Mantendo preços da última busca válida:', {
+          xlmUSD: xlmPriceUSD.value,
+          usdToBRL: usdToBRL.value,
+          xlmBRL: xlmPriceBRL.value
+        })
+      } else {
+        // Só usar valores padrão se nunca conseguiu buscar antes
+        xlmPriceUSD.value = 0.12
+        xlmPriceBRL.value = 0.60
+        usdToBRL.value = 5.0
+        console.log('🔄 Usando preços padrão (primeira vez):', {
+          xlmUSD: xlmPriceUSD.value,
+          usdToBRL: usdToBRL.value,
+          xlmBRL: xlmPriceBRL.value
+        })
+      }
     } finally {
       isLoading.value = false
     }
