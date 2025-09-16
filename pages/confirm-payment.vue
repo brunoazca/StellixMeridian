@@ -307,7 +307,7 @@ const processPayment = async () => {
     const success = await processPayPix({
       walletAddress: address.value || 'GD05MEIGATLKEQG57JTXAA7PJ5C3BE7Z5I6Y4L5T5VF0IJF4HTHVPREX',
       amount: brlAmount,
-      pixKeyType: 'EMAIL',
+      pixKeyType: 'CPF',
       pixCode: paymentData.value.pixCode,
       useMerit: paymentData.value.useMerit
     })
