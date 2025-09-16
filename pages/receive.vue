@@ -119,15 +119,32 @@ const handleMakePix = async () => {
   // Extract numeric value from formatted amount
   const numericAmount = makePixForm.value.amount.replace(/[^\d,]/g, '').replace(',', '.')
 
-  const success = await processMakePix({
-    walletAddress: address.value,
-    amount: parseFloat(numericAmount),
-    description: makePixForm.value.description,
-    useMerit: makePixForm.value.useMerit
-  })
+  try {
+    const success = await processMakePix({
+      walletAddress: address.value,
+      amount: parseFloat(numericAmount),
+      description: makePixForm.value.description,
+      useMerit: makePixForm.value.useMerit
+    })
 
-  if (success) {
-    navigateTo('/')
+    // Navigate to share PIX page regardless of API response
+    navigateTo({
+      path: '/share-pix',
+      query: {
+        amount: numericAmount,
+        description: makePixForm.value.description
+      }
+    })
+  } catch (error) {
+    console.error('PIX creation failed:', error)
+    // Still navigate to share page even if API fails
+    navigateTo({
+      path: '/share-pix',
+      query: {
+        amount: numericAmount,
+        description: makePixForm.value.description
+      }
+    })
   }
 }
 

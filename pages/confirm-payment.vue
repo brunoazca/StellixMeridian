@@ -75,7 +75,7 @@
           <h3 class="section-label">Wallet</h3>
           <div class="detail-content">
             <div class="wallet-info">
-              <div class="wallet-icon">💳</div>
+              <img src="/images/wallet.svg" alt="Wallet" class="wallet-icon" />
               <span class="wallet-text">From wallet: Freighter</span>
             </div>
             <div class="balance-info">
@@ -413,7 +413,9 @@ useHead({
 }
 
 .wallet-icon {
-  font-size: 1.2rem;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .wallet-text {
