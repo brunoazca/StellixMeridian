@@ -1,93 +1,95 @@
 # Stellix
 
-Uma aplicação Web3 moderna construída com Nuxt.js e Reown AppKit para conexão de carteiras.
+A modern Web3 application built with Nuxt.js and Reown AppKit for wallet connection.
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-- ✅ Conexão com carteiras Web3 via Reown AppKit
-- ✅ Suporte a múltiplas redes (Ethereum, Arbitrum, Base)
-- ✅ Interface moderna e responsiva
-- ✅ Detecção automática de carteiras conectadas
+- ✅ Web3 wallet connection via Reown AppKit
+- ✅ Multi-network support (Ethereum, Arbitrum, Base)
+- ✅ Modern and responsive interface
+- ✅ Automatic detection of connected wallets
 
-## 🛠️ Tecnologias
+## 🛠️ Technologies
 
-- **Nuxt.js 4** - Framework Vue.js
-- **Reown AppKit** - Conexão de carteiras Web3
-- **Wagmi** - Biblioteca para interação com Ethereum
-- **Viem** - Cliente Ethereum TypeScript
+- **Nuxt.js 4** - Vue.js framework
+- **Reown AppKit** - Web3 wallet connection
+- **Wagmi** - Library for interacting with Ethereum
+- **Viem** - TypeScript Ethereum client
 
-## 📦 Instalação
+## 📦 Installation
 
-1. Clone o repositório
-2. Instale as dependências:
+1. Clone the repository
+2. Install dependencies:
    ```bash
    npm install
    ```
 
-3. Configure o Project ID:
-   - Copie `env.example` para `.env`
-   - Obtenha um Project ID em [Reown Dashboard](https://dashboard.reown.com/)
-   - Adicione o Project ID no arquivo `.env`
+3. Configure the Project ID:
+   - Copy `env.example` to `.env`
+   - Get a Project ID at [Reown Dashboard](https://dashboard.reown.com/)
+   - Add the Project ID in the `.env` file
 
-4. Execute o projeto:
+4. Run the project:
    ```bash
    npm run dev
    ```
 
-## 🔧 Configuração
+## 🔧 Configuration
 
 ### Project ID
 
-Para usar o Reown AppKit, você precisa de um Project ID:
+To use Reown AppKit, you need a Project ID:
 
-1. Acesse [Reown Dashboard](https://dashboard.reown.com/)
-2. Crie um novo projeto
-3. Copie o Project ID
-4. Adicione no arquivo `.env`:
+1. Go to [Reown Dashboard](https://dashboard.reown.com/)
+2. Create a new project
+3. Copy the Project ID
+4. Add it to the `.env` file:
    ```
-   REOWN_PROJECT_ID=seu_project_id_aqui
+   REOWN_PROJECT_ID=your_project_id_here
    ```
 
-## 📁 Estrutura do Projeto
+## 📁 Project Structure
 
 ```
 ├── app/
-│   └── app.vue              # Componente principal
+│   └── app.vue              # Main component
 ├── pages/
-│   └── index.vue            # Página inicial
+│   └── index.vue            # Home page
 ├── plugins/
-│   └── appkit.client.ts     # Plugin do Reown AppKit
-├── components/              # Componentes Vue
-├── composables/             # Composables Vue
-├── layouts/                 # Layouts do Nuxt
-├── middleware/              # Middleware do Nuxt
+│   └── appkit.client.ts     # Reown AppKit plugin
+├── components/              # Vue components
+├── composables/             # Vue composables
+├── layouts/                 # Nuxt layouts
+├── middleware/              # Nuxt middleware
 ├── server/                  # API routes
 ├── stores/                  # Pinia stores
-├── types/                   # Tipos TypeScript
-├── utils/                   # Utilitários
-└── assets/                  # Assets estáticos
+├── types/                   # TypeScript types
+├── utils/                   # Utilities
+└── assets/                  # Static assets
 ```
 
-## 🌐 Redes Suportadas
+## 🌐 Supported Networks
 
 - **Ethereum** (Mainnet)
 - **Arbitrum** (One)
 - **Base** (Mainnet)
 
-## 📚 Documentação
+## 📚 Documentation
 
 - [Reown AppKit Vue](https://docs.reown.com/appkit/vue/core/installation)
 - [Nuxt.js](https://nuxt.com/)
 - [Wagmi](https://wagmi.sh/)
 
-## 🤝 Contribuição
+## 🤝 Contribution
 
-1. Fork o projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
-5. Abra um Pull Request
+1. Fork the project
+2. Create a branch for your feature
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
-## 📄 Licença
+## 📄 License
 
-Este projeto está sob a licença MIT.
+This project is under the MIT license.
+
+<img width="432" height="658" alt="image" src="https://github.com/user-attachments/assets/4ff1c332-908f-494b-9bcf-6e9b1a953a47" />
