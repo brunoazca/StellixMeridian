@@ -91,5 +91,3 @@ To use Reown AppKit, you need a Project ID:
 ## 📄 License
 
 This project is under the MIT license.
-
-<img width="432" height="658" alt="image" src="https://github.com/user-attachments/assets/4ff1c332-908f-494b-9bcf-6e9b1a953a47" />
