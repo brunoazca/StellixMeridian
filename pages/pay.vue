@@ -41,7 +41,11 @@
           <div class="merit-content">
             <div class="merit-info">
               <h3>Use Merit to reduce fees</h3>
-              <p class="estimated-fee">Estimated fee after Merit: R$ 2,50</p>
+              <p v-if="payPixForm.useMerit" class="estimated-fee">Estimated fee after Merit: R$ {{ estimatedFeeAfterMerit }}</p>
+              <p v-else class="estimated-fee">Transaction fee: R$ {{ BASE_FEE_BRL.toFixed(2).replace('.', ',') }}</p>
+              <p v-if="estimatedMeritEarnings > 0" class="merit-earnings-info">
+                You will earn {{ estimatedMeritEarnings.toFixed(2) }} MERIT tokens (2% of XLM)
+              </p>
             </div>
             <label class="toggle-label">
               <input 
@@ -72,19 +76,73 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useFreighter } from '~/composables/useFreighter'
 import { usePIX } from '~/composables/usePIX'
+import { useMeritTokens } from '~/composables/useMeritTokens'
 
 // Composables
 const { address } = useFreighter()
 const { handlePayPix: processPayPix, isProcessingPix } = usePIX()
+const { meritBalance } = useMeritTokens()
+
+// Constants
+const MERIT_VALUE_USD = 0.0975
+const USD_TO_BRL_RATE = 5.20
+const MERIT_VALUE_BRL = MERIT_VALUE_USD * USD_TO_BRL_RATE
+const BASE_FEE_BRL = 2.50
+const MERIT_EARNINGS_RATE = 0.02
 
 // State
 const payPixForm = ref({
   amount: '',
   pixCode: '',
   useMerit: false
+})
+
+// Computed
+const estimatedFeeAfterMerit = computed(() => {
+  if (!payPixForm.value.useMerit || !payPixForm.value.amount) {
+    return BASE_FEE_BRL.toFixed(2).replace('.', ',')
+  }
+  
+  // Parse amount from formatted string
+  const numericAmount = payPixForm.value.amount.replace(/[^\d,]/g, '').replace(',', '.')
+  const amount = parseFloat(numericAmount) || 0
+  
+  // Calculate XLM amount (assuming 1 BRL = 0.37 XLM)
+  const xlmAmount = amount * 0.37
+  
+  // Calculate MERIT earnings (2% of XLM)
+  const meritEarnings = xlmAmount * MERIT_EARNINGS_RATE
+  
+  // Total available MERIT
+  const totalAvailableMerit = meritBalance.value + meritEarnings
+  
+  // MERIT needed to cover full fee
+  const meritNeededForFullFee = BASE_FEE_BRL / MERIT_VALUE_BRL
+  
+  // Actual MERIT used
+  const meritUsed = Math.min(meritNeededForFullFee, totalAvailableMerit)
+  
+  // Final fee after MERIT reduction
+  const finalFee = Math.max(0, BASE_FEE_BRL - (meritUsed * MERIT_VALUE_BRL))
+  
+  return finalFee.toFixed(2).replace('.', ',')
+})
+
+const estimatedMeritEarnings = computed(() => {
+  if (!payPixForm.value.amount) return 0
+  
+  // Parse amount from formatted string
+  const numericAmount = payPixForm.value.amount.replace(/[^\d,]/g, '').replace(',', '.')
+  const amount = parseFloat(numericAmount) || 0
+  
+  // Calculate XLM amount (assuming 1 BRL = 0.37 XLM)
+  const xlmAmount = amount * 0.37
+  
+  // Calculate MERIT earnings (2% of XLM)
+  return xlmAmount * MERIT_EARNINGS_RATE
 })
 
 // Methods
@@ -266,6 +324,14 @@ useHead({
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--light-gray);
+  margin: 0 0 0.5rem 0;
+}
+
+.merit-earnings-info {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #10b981;
   margin: 0;
 }
 

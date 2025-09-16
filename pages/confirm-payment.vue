@@ -44,11 +44,15 @@
           <div class="detail-content">
             <div class="fee-item">
               <span class="fee-label">Transaction fee</span>
-              <span class="fee-value">R$ 2,50</span>
+              <span class="fee-value">R$ {{ BASE_FEE_BRL.toFixed(2).replace('.', ',') }}</span>
             </div>
-            <div v-if="paymentData.useMerit" class="fee-item merit-applied">
+            <div v-if="paymentData.useMerit && meritTokensUsed > 0" class="fee-item merit-applied">
               <span class="fee-label">Merit applied</span>
-              <span class="fee-value">- 10 Merit</span>
+              <span class="fee-value">- {{ meritTokensUsed.toFixed(2) }} MERIT</span>
+            </div>
+            <div v-if="meritEarnings > 0" class="fee-item merit-earnings">
+              <span class="fee-label">Merit earned (2% of XLM)</span>
+              <span class="fee-value">+ {{ meritEarnings.toFixed(2) }} MERIT</span>
             </div>
             <div class="fee-item final-fee">
               <span class="fee-label">Final fee</span>
@@ -115,6 +119,13 @@ const { xlmBalance, xlmBalanceBRL } = useXLMBalance()
 const { meritBalance } = useMeritTokens()
 const { address, isWalletConnected } = useFreighter()
 
+// Constants
+const MERIT_VALUE_USD = 0.0975 // $0.0975 per MERIT token
+const BASE_FEE_BRL = 2.50 // R$ 2.50 base transaction fee
+const MERIT_EARNINGS_RATE = 0.02 // 2% of XLM amount in MERIT tokens
+const USD_TO_BRL_RATE = 5.20 // Approximate USD to BRL rate
+const MERIT_VALUE_BRL = MERIT_VALUE_USD * USD_TO_BRL_RATE // MERIT value in BRL
+
 // State
 const isProcessing = ref(false)
 
@@ -140,12 +151,43 @@ const xlmAmount = computed(() => {
   return (amount * xlmRate).toFixed(2)
 })
 
+// Calculate MERIT tokens that will be earned from this transaction (2% of XLM amount)
+const meritEarnings = computed(() => {
+  const xlmAmountValue = parseFloat(xlmAmount.value)
+  return xlmAmountValue * MERIT_EARNINGS_RATE
+})
+
+// Calculate total available MERIT (current balance + earnings from transaction)
+const totalAvailableMerit = computed(() => {
+  return meritBalance.value + meritEarnings.value
+})
+
+// Calculate how much MERIT is needed to cover the full fee
+const meritNeededForFullFee = computed(() => {
+  return BASE_FEE_BRL / MERIT_VALUE_BRL
+})
+
+// Calculate actual MERIT tokens used (limited by available amount)
+const meritTokensUsed = computed(() => {
+  if (!paymentData.value.useMerit) return 0
+  
+  // Use the minimum between what's needed and what's available
+  return Math.min(meritNeededForFullFee.value, totalAvailableMerit.value)
+})
+
+// Calculate the BRL value of MERIT tokens used
+const meritValueUsedBRL = computed(() => {
+  return meritTokensUsed.value * MERIT_VALUE_BRL
+})
+
 const finalFee = computed(() => {
-  const baseFee = 2.50
-  if (paymentData.value.useMerit) {
-    return (baseFee * 0.5).toFixed(2) // 50% discount with Merit
+  if (!paymentData.value.useMerit) {
+    return BASE_FEE_BRL.toFixed(2)
   }
-  return baseFee.toFixed(2)
+  
+  // Calculate final fee after MERIT reduction
+  const feeAfterMeritReduction = Math.max(0, BASE_FEE_BRL - meritValueUsedBRL.value)
+  return feeAfterMeritReduction.toFixed(2)
 })
 
 const totalAmount = computed(() => {
@@ -382,6 +424,14 @@ useHead({
 
 .merit-applied .fee-label {
   color: var(--pix);
+}
+
+.merit-earnings .fee-label {
+  color: #10b981;
+}
+
+.merit-earnings .fee-value {
+  color: #10b981;
 }
 
 .final-fee {
