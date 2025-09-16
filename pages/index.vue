@@ -154,6 +154,8 @@ useHead({
 </script>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
   --pix: #31BCAD;
   --dark-blue: #1B2A41;
@@ -259,6 +261,7 @@ html, body {
 }
 
 .balance-label {
+  font-family: 'Inter', sans-serif;
   font-size: 1rem;
   color: var(--white);
   margin: 0 0 1rem 0;
@@ -266,6 +269,7 @@ html, body {
 }
 
 .balance-amount {
+  font-family: 'Inter', sans-serif;
   font-size: 2.5rem;
   color: var(--white);
   margin: 0 0 0.5rem 0;
@@ -281,6 +285,7 @@ html, body {
 }
 
 .balance-fiat {
+  font-family: 'Inter', sans-serif;
   font-size: 1.2rem;
   color: var(--pix);
   margin: 0 0 1.5rem 0;
@@ -293,6 +298,7 @@ html, body {
   color: var(--pix);
   padding: 0.75rem 1.5rem;
   border-radius: 9999px;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -325,6 +331,7 @@ html, body {
   width: 100%;
   padding: 1.25rem 2rem;
   border-radius: 0.75rem;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 1.1rem;
   cursor: pointer;
@@ -381,6 +388,7 @@ html, body {
 }
 
 .wallet-label {
+  font-family: 'Inter', sans-serif;
   color: var(--white);
   font-weight: 500;
 }
@@ -399,6 +407,7 @@ html, body {
 }
 
 .status-text {
+  font-family: 'Inter', sans-serif;
   color: var(--white);
   font-weight: 500;
 }
@@ -408,6 +417,7 @@ html, body {
   color: #31BCAD;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -425,6 +435,7 @@ html, body {
   color: #E85035;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
