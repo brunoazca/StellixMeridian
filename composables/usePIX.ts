@@ -16,13 +16,13 @@ export const usePIX = () => {
       })
 
       if (response.success) {
-        alert(`PIX realizado com sucesso!\nID: ${response.transactionId}\nValor: R$ ${response.amount}\nDestinatário: ${response.recipientEmail}`)
+        alert(`PIX completed successfully!\nID: ${response.transactionId}\nAmount: R$ ${response.amount}\nRecipient: ${response.recipientEmail}`)
         showMakePix.value = false
         return true
       }
     } catch (error) {
-      console.error('Erro ao fazer PIX:', error)
-      alert('Erro ao processar PIX')
+      console.error('Error making PIX:', error)
+      alert('Error processing PIX')
       return false
     } finally {
       isProcessingPix.value = false
@@ -38,13 +38,16 @@ export const usePIX = () => {
       })
 
       if (response.success) {
-        alert(`PIX pago com sucesso!\nID: ${response.paymentId}`)
+        alert(`PIX paid successfully!\nID: ${response.paymentId}\nAmount: R$ ${response.amount}\nStatus: ${response.status}`)
         showPayPix.value = false
         return true
+      } else {
+        alert('PIX payment failed')
+        return false
       }
     } catch (error) {
-      console.error('Erro ao pagar PIX:', error)
-      alert('Erro ao processar pagamento PIX')
+      console.error('Error paying PIX:', error)
+      alert('Error processing PIX payment')
       return false
     } finally {
       isProcessingPix.value = false

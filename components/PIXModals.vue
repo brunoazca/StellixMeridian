@@ -3,25 +3,25 @@
   <div v-if="showMakePix" class="modal-overlay" @click="$emit('close-make-pix')">
     <div class="modal" @click.stop>
       <div class="modal-header">
-        <h3>💸 Fazer PIX</h3>
+        <h3>💸 Receive PIX</h3>
         <button @click="$emit('close-make-pix')" class="close-button">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Valor (R$)</label>
+          <label>Amount (R$)</label>
           <input v-model="makePixForm.amount" type="number" step="0.01" placeholder="0.00" />
         </div>
         <div class="form-group">
-          <label>Email do Destinatário</label>
-          <input v-model="makePixForm.recipientEmail" type="email" placeholder="destinatario@exemplo.com" />
+          <label>Recipient Email</label>
+          <input v-model="makePixForm.recipientEmail" type="email" placeholder="recipient@example.com" />
         </div>
         <div class="form-group">
-          <label>Nome do Destinatário (opcional)</label>
-          <input v-model="makePixForm.recipientName" type="text" placeholder="Nome completo" />
+          <label>Recipient Name (optional)</label>
+          <input v-model="makePixForm.recipientName" type="text" placeholder="Full name" />
         </div>
         <button @click="handleMakePix" :disabled="isProcessingPix" class="submit-button">
           <span v-if="isProcessingPix" class="loading-spinner">⏳</span>
-          {{ isProcessingPix ? 'Processando...' : 'Fazer PIX' }}
+          {{ isProcessingPix ? 'Processing...' : 'Receive PIX' }}
         </button>
       </div>
     </div>
@@ -31,22 +31,25 @@
   <div v-if="showPayPix" class="modal-overlay" @click="$emit('close-pay-pix')">
     <div class="modal" @click.stop>
       <div class="modal-header">
-        <h3>💳 Pagar PIX</h3>
+        <h3>💳 Pay PIX</h3>
         <button @click="$emit('close-pay-pix')" class="close-button">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Valor (R$)</label>
+          <label>Amount (R$)</label>
           <input v-model="payPixForm.amount" type="number" step="0.01" placeholder="0.00" />
         </div>
         <div class="form-group">
-          <label>Código PIX</label>
-          <input v-model="payPixForm.pixCode" type="text" placeholder="Cole o código PIX aqui" />
+          <label>PIX Email</label>
+          <input v-model="payPixForm.pixCode" type="text" placeholder="Enter PIX email here" />
         </div>
         <button @click="handlePayPix" :disabled="isProcessingPix" class="submit-button">
           <span v-if="isProcessingPix" class="loading-spinner">⏳</span>
-          {{ isProcessingPix ? 'Processando...' : 'Pagar PIX' }}
+          {{ isProcessingPix ? 'Processing...' : 'Pay PIX' }}
         </button>
+        <div v-if="isProcessingPix" class="processing-info">
+          Processing PIX payment...
+        </div>
       </div>
     </div>
   </div>
@@ -89,12 +92,12 @@ const validateEmail = (email) => {
 
 const handleMakePix = async () => {
   if (!makePixForm.value.amount || !makePixForm.value.recipientEmail) {
-    alert('Preencha o valor e o email do destinatário')
+    alert('Please fill in the amount and recipient email')
     return
   }
 
   if (!validateEmail(makePixForm.value.recipientEmail)) {
-    alert('Email inválido')
+    alert('Invalid email')
     return
   }
 
@@ -111,7 +114,7 @@ const handleMakePix = async () => {
 
 const handlePayPix = async () => {
   if (!payPixForm.value.amount || !payPixForm.value.pixCode) {
-    alert('Preencha todos os campos')
+    alert('Please fill in all fields')
     return
   }
 
@@ -127,6 +130,8 @@ const handlePayPix = async () => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -142,14 +147,15 @@ const handlePayPix = async () => {
 }
 
 .modal {
-  background: rgba(30, 58, 138, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 1rem;
+  background: #17181A;
+  border: none;
+  border-radius: 1.5rem;
   backdrop-filter: blur(16px);
   width: 100%;
   max-width: 400px;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .modal-header {
@@ -163,22 +169,29 @@ const handlePayPix = async () => {
 .modal-header h3 {
   margin: 0;
   color: white;
+  font-family: 'Inter', sans-serif;
   font-size: 1.3rem;
+  font-weight: 600;
 }
 
 .close-button {
-  background: none;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
-  color: #94a3b8;
-  font-size: 1.5rem;
+  color: #A0A8B8;
+  font-size: 1.2rem;
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 0.5rem;
   transition: all 0.3s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.2);
   color: white;
 }
 
@@ -194,30 +207,41 @@ const handlePayPix = async () => {
   display: block;
   margin-bottom: 0.5rem;
   color: white;
-  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .form-group input {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
   color: white;
+  font-family: 'Inter', sans-serif;
   font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--pix);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .form-group input::placeholder {
-  color: #94a3b8;
+  color: #A0A8B8;
 }
 
 .submit-button {
   width: 100%;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background: var(--pix);
   border: none;
   color: white;
   padding: 1rem;
   border-radius: 0.75rem;
+  font-family: 'Inter', sans-serif;
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
@@ -229,21 +253,46 @@ const handlePayPix = async () => {
 }
 
 .submit-button:hover:not(:disabled) {
+  background: rgba(49, 188, 173, 0.8);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 25px rgba(49, 188, 173, 0.3);
 }
 
 .submit-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .loading-spinner {
   animation: spin 1s linear infinite;
 }
 
+.processing-info {
+  text-align: center;
+  color: var(--pix);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background: rgba(49, 188, 173, 0.1);
+  border-radius: 0.5rem;
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal {
+    margin: 1rem;
+    max-width: calc(100% - 2rem);
+  }
+  
+  .modal-header, .modal-body {
+    padding: 1rem;
+  }
 }
 </style>
