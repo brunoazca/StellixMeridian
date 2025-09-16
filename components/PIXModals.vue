@@ -189,7 +189,7 @@ const handlePayPix = async () => {
     return
   }
 
-  // Validate based on key type
+  // Validate locally first
   if (payPixForm.value.pixKeyType === 'EMAIL') {
     if (!validateEmail(payPixForm.value.pixCode)) {
       alert('Invalid email')
@@ -202,15 +202,47 @@ const handlePayPix = async () => {
     }
   }
 
-  emit('pix-success', 'pay', {
-    walletAddress: address.value,
-    amount: parseFloat(payPixForm.value.amount),
-    pixKeyType: payPixForm.value.pixKeyType,
-    pixCode: payPixForm.value.pixCode
-  })
+  try {
+    console.log('🔍 Validando chave PIX...')
+    
+    // Validate PIX key with server
+    const validation = await $fetch('/api/pix/validate', {
+      method: 'POST',
+      body: {
+        pixCode: payPixForm.value.pixCode,
+        pixKeyType: payPixForm.value.pixKeyType
+      }
+    })
 
-  // Reset form
-  payPixForm.value = { amount: '', pixKeyType: 'EMAIL', pixCode: '' }
+    if (!validation.success) {
+      alert(`Chave PIX inválida: ${validation.error}`)
+      return
+    }
+
+    console.log('✅ Chave PIX válida, navegando para confirmação...')
+
+    // Close modal first
+    emit('close-pay-pix')
+
+    // Navigate to confirmation page with validated data
+    await navigateTo({
+      path: '/confirm-payment',
+      query: {
+        amount: payPixForm.value.amount,
+        pixCode: payPixForm.value.pixCode,
+        pixKeyType: payPixForm.value.pixKeyType,
+        recipientName: validation.recipient.name,
+        useMerit: false
+      }
+    })
+
+    // Reset form
+    payPixForm.value = { amount: '', pixKeyType: 'EMAIL', pixCode: '' }
+
+  } catch (error) {
+    console.error('❌ Erro ao validar PIX:', error)
+    alert('Erro ao validar chave PIX. Tente novamente.')
+  }
 }
 </script>
 

@@ -85,7 +85,7 @@
           :is-processing-pix="isProcessingPix"
           @close-make-pix="closeMakePix"
           @close-pay-pix="closePayPix"
-          @pix-success="handlePIXSuccess"
+          @pix-success="handleMakePixSuccess"
         />
       </div>
     </main>
@@ -166,12 +166,11 @@ const copyAddress = async () => {
   }
 }
 
-const handlePIXSuccess = async (type, data) => {
+const handleMakePixSuccess = async (type, data) => {
   if (type === 'make') {
     await handleMakePix(data)
-  } else if (type === 'pay') {
-    await handlePayPix(data)
   }
+  // Pay PIX agora navega diretamente para confirm-payment, não precisa processar aqui
 }
 
 // Meta tags
