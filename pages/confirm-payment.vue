@@ -20,8 +20,8 @@
         <div class="detail-section">
           <h3 class="section-label">Recipient</h3>
           <div class="detail-content">
-            <p class="recipient-name">{{ recipientName }}</p>
-            <p class="recipient-cpf">{{ paymentData.pixCode }}</p>
+            <p class="recipient-name">{{ paymentData.pixCode }}</p>
+            <p class="recipient-cpf">{{ pixTypeInfo.displayTitle }}</p>
           </div>
         </div>
 
@@ -48,7 +48,7 @@
             </div>
             <div v-if="paymentData.useMerit" class="fee-item merit-applied">
               <span class="fee-label">Merit applied</span>
-              <span class="fee-value">- 10 Merit</span>
+              <span class="fee-value">- {{meritTokensUsed}} Merit</span>
             </div>
             <div class="fee-item final-fee">
               <span class="fee-label">Final fee</span>
@@ -109,6 +109,7 @@ import { useXLMBalance } from '~/composables/useXLMBalance'
 import { useMeritTokens } from '~/composables/useMeritTokens'
 import { useFreighter } from '~/composables/useFreighter'
 import { useWalletAuth } from '~/composables/useWalletAuth'
+import { usePixDetection } from '~/composables/usePixDetection'
 
 // Composables
 const { handlePayPix: processPayPix } = usePIX()
@@ -116,6 +117,7 @@ const { xlmBalance, xlmBalanceBRL } = useXLMBalance()
 const { meritBalance } = useMeritTokens()
 const { address } = useFreighter()
 const { requireAuth } = useWalletAuth()
+const { detectPixType } = usePixDetection()
 
 // Check wallet connection on mount
 onMounted(() => {
@@ -133,6 +135,11 @@ const paymentData = ref({
   useMerit: route.query.useMerit === 'true',
   recipientName: route.query.recipientName || 'João Silva Santos',
   recipientCpf: route.query.recipientCpf || '123.456.789-00'
+})
+
+// Detect PIX type using the composable
+const pixTypeInfo = computed(() => {
+  return detectPixType(paymentData.value.pixCode)
 })
 
 // Computed values for display
@@ -153,6 +160,13 @@ const finalFee = computed(() => {
     return (baseFee * 0.5).toFixed(2) // 50% discount with Merit
   }
   return baseFee.toFixed(2)
+})
+
+const meritTokensUsed = computed(() => {
+  if (paymentData.value.useMerit) {
+    return 10 // 10 Merit tokens for 50% fee discount
+  }
+  return 0
 })
 
 const totalAmount = computed(() => {
@@ -201,6 +215,24 @@ const processPayment = async () => {
   isProcessing.value = true
   
   try {
+    console.log('🔄 Iniciando processamento do pagamento PIX...')
+    console.log('📋 Dados do pagamento:', {
+      walletAddress: address.value,
+      amount: parseFloat(paymentData.value.amount),
+      pixCode: paymentData.value.pixCode,
+      useMerit: paymentData.value.useMerit,
+      pixType: pixTypeInfo.value
+    })
+
+    // Validate required data
+    if (!address.value) {
+      throw new Error('Wallet address is required')
+    }
+    
+    if (!paymentData.value.amount || !paymentData.value.pixCode) {
+      throw new Error('Amount and PIX code are required')
+    }
+
     // Process the actual PIX payment
     const success = await processPayPix({
       walletAddress: address.value || 'GD05MEIGATLKEQG57JTXAA7PJ5C3BE7Z5I6Y4L5T5VF0IJF4HTHVPREX',
@@ -210,11 +242,21 @@ const processPayment = async () => {
     })
 
     if (success) {
+      console.log('✅ Pagamento PIX processado com sucesso!')
+      // Navigate back to home page
       navigateTo('/')
+    } else {
+      throw new Error('Payment processing failed')
     }
   } catch (error) {
-    console.error('Payment failed:', error)
-    alert('Payment failed. Please try again.')
+    console.error('❌ Erro ao processar pagamento PIX:', error)
+    
+    let errorMessage = 'Payment failed. Please try again.'
+    if (error.message) {
+      errorMessage = error.message
+    }
+    
+    alert(`❌ ${errorMessage}`)
   } finally {
     isProcessing.value = false
   }

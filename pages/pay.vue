@@ -22,7 +22,7 @@
             type="text"
             placeholder="Paste Code or Key"
             class="form-input"
-            @input="detectPixType"
+            @input="handlePixTypeDetection"
           />
         </div>
 
@@ -77,11 +77,13 @@ import { ref, onMounted } from 'vue'
 import { useFreighter } from '~/composables/useFreighter'
 import { usePIX } from '~/composables/usePIX'
 import { useWalletAuth } from '~/composables/useWalletAuth'
+import { usePixDetection } from '~/composables/usePixDetection'
 
 // Composables
 const { address } = useFreighter()
 const { handlePayPix: processPayPix, isProcessingPix } = usePIX()
 const { requireAuth } = useWalletAuth()
+const { detectPixType } = usePixDetection()
 
 // Check wallet connection on mount
 onMounted(() => {
@@ -103,7 +105,7 @@ const goBack = () => {
 }
 
 // PIX Type Detection
-const detectPixType = () => {
+const handlePixTypeDetection = () => {
   const pixCode = payPixForm.value.pixCode.trim()
   
   if (!pixCode) {
@@ -111,38 +113,14 @@ const detectPixType = () => {
     return
   }
   
-  // Código PIX Copia e Cola
-  if (pixCode.startsWith('000201') && pixCode.length > 50) {
-    detectedPixType.value = { type: 'BRCODE', isCopiaECola: true }
-    return
+  // Use the composable function
+  const pixInfo = detectPixType(pixCode)
+  detectedPixType.value = {
+    type: pixInfo.type,
+    isCopiaECola: pixInfo.isCopiaECola,
+    displayTitle: pixInfo.displayTitle,
+    icon: pixInfo.icon
   }
-  
-  // Email
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixCode)) {
-    detectedPixType.value = { type: 'EMAIL', isCopiaECola: false }
-    return
-  }
-  
-  // CPF
-  if (/^(\d{3}\.?\d{3}\.?\d{3}-?\d{2})$/.test(pixCode)) {
-    detectedPixType.value = { type: 'CPF', isCopiaECola: false }
-    return
-  }
-  
-  // CNPJ
-  if (/^(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})$/.test(pixCode)) {
-    detectedPixType.value = { type: 'CNPJ', isCopiaECola: false }
-    return
-  }
-  
-  // Telefone
-  if (/^(\+?55\s?)?(\(?\d{2}\)?\s?)?\d{4,5}-?\d{4}$/.test(pixCode)) {
-    detectedPixType.value = { type: 'PHONE', isCopiaECola: false }
-    return
-  }
-  
-  // Fallback para código PIX
-  detectedPixType.value = { type: 'BRCODE', isCopiaECola: true }
 }
 
 const formatAmount = (event) => {
