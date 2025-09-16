@@ -7,14 +7,15 @@ export default defineEventHandler(async (event) => {
     console.log('📋 Dados recebidos para pagar PIX:')
     console.log('  - Carteira:', body.walletAddress)
     console.log('  - Valor:', `R$ ${body.amount}`)
+    console.log('  - Tipo de Chave PIX:', body.pixKeyType)
     console.log('  - Código PIX:', body.pixCode)
     console.log('  - Timestamp:', new Date().toISOString())
     
     // Validar dados obrigatórios
-    if (!body.amount || !body.pixCode) {
+    if (!body.amount || !body.pixCode || !body.pixKeyType) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Valor e código PIX são obrigatórios'
+        statusMessage: 'Valor, tipo de chave PIX e código PIX são obrigatórios'
       })
     }
 
@@ -24,8 +25,8 @@ export default defineEventHandler(async (event) => {
     
     // Preparar payload para Asaas - PIX Payment
     const asaasPayload = {
-      pixAddressKey: body.pixCode, // Código PIX fornecido pelo usuário
-      pixAddressKeyType: "EMAIL", // Assumindo que é email, pode ser ajustado conforme necessário
+      pixAddressKey: body.pixCode, // Código PIX (email ou CPF) fornecido pelo usuário
+      pixAddressKeyType: body.pixKeyType, // Tipo da chave (EMAIL ou CPF)
       value: parseFloat(body.amount)
     }
 
@@ -68,6 +69,7 @@ export default defineEventHandler(async (event) => {
       success: true,
       paymentId: asaasData.id || `PAY_${Date.now()}`,
       amount: body.amount,
+      pixKeyType: body.pixKeyType,
       pixCode: body.pixCode,
       status: asaasData.status || 'PAID',
       timestamp: new Date().toISOString(),

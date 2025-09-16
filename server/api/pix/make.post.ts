@@ -7,15 +7,16 @@ export default defineEventHandler(async (event) => {
     console.log('📋 Dados recebidos para fazer PIX:')
     console.log('  - Carteira:', body.walletAddress)
     console.log('  - Valor:', `R$ ${body.amount}`)
-    console.log('  - Email Destinatário:', body.recipientEmail)
+    console.log('  - Tipo de Chave PIX:', body.pixKeyType)
+    console.log('  - Chave Destinatário:', body.recipientKey)
     console.log('  - Nome Destinatário:', body.recipientName || 'Não informado')
     console.log('  - Timestamp:', new Date().toISOString())
     
     // Validar dados obrigatórios
-    if (!body.amount || !body.recipientEmail) {
+    if (!body.amount || !body.recipientKey || !body.pixKeyType) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Valor e email do destinatário são obrigatórios'
+        statusMessage: 'Valor, tipo de chave PIX e chave do destinatário são obrigatórios'
       })
     }
 
@@ -25,8 +26,8 @@ export default defineEventHandler(async (event) => {
     
     // Preparar payload para Asaas
     const asaasPayload = {
-      pixAddressKey: body.recipientEmail, // Email do destinatário fornecido pelo usuário
-      pixAddressKeyType: "EMAIL",
+      pixAddressKey: body.recipientKey, // Chave PIX (email ou CPF) fornecida pelo usuário
+      pixAddressKeyType: body.pixKeyType, // Tipo da chave (EMAIL ou CPF)
       value: parseFloat(body.amount)
     }
 
@@ -62,7 +63,8 @@ export default defineEventHandler(async (event) => {
       success: true,
       transactionId: asaasData.id || `PIX_${Date.now()}`,
       amount: body.amount,
-      recipientEmail: body.recipientEmail,
+      pixKeyType: body.pixKeyType,
+      recipientKey: body.recipientKey,
       recipientName: body.recipientName,
       status: asaasData.status || 'COMPLETED',
       timestamp: new Date().toISOString(),

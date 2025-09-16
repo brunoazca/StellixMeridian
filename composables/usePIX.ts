@@ -7,7 +7,7 @@ export const usePIX = () => {
   const isProcessingPix = ref(false)
 
   // Methods
-  const handleMakePix = async (data: { walletAddress: string; amount: number; recipientEmail: string; recipientName?: string }) => {
+  const handleMakePix = async (data: { walletAddress: string; amount: number; pixKeyType: string; recipientKey: string; recipientName?: string }) => {
     isProcessingPix.value = true
     try {
       const response = await $fetch('/api/pix/make', {
@@ -16,7 +16,7 @@ export const usePIX = () => {
       })
 
       if (response.success) {
-        alert(`PIX completed successfully!\nID: ${response.transactionId}\nAmount: R$ ${response.amount}\nRecipient: ${response.recipientEmail}`)
+        alert(`PIX completed successfully!\nID: ${response.transactionId}\nAmount: R$ ${response.amount}\nRecipient: ${response.recipientKey} (${response.pixKeyType})`)
         showMakePix.value = false
         return true
       }
@@ -29,7 +29,7 @@ export const usePIX = () => {
     }
   }
 
-  const handlePayPix = async (data: { walletAddress: string; amount: number; pixCode: string }) => {
+  const handlePayPix = async (data: { walletAddress: string; amount: number; pixKeyType: string; pixCode: string }) => {
     isProcessingPix.value = true
     try {
       const response = await $fetch('/api/pix/pay', {
@@ -38,7 +38,7 @@ export const usePIX = () => {
       })
 
       if (response.success) {
-        alert(`PIX paid successfully!\nID: ${response.paymentId}\nAmount: R$ ${response.amount}\nStatus: ${response.status}`)
+        alert(`PIX paid successfully!\nID: ${response.paymentId}\nAmount: R$ ${response.amount}\nRecipient: ${response.pixCode} (${response.pixKeyType})\nStatus: ${response.status}`)
         showPayPix.value = false
         return true
       } else {

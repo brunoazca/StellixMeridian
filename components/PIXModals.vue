@@ -12,8 +12,19 @@
           <input v-model="makePixForm.amount" type="number" step="0.01" placeholder="0.00" />
         </div>
         <div class="form-group">
-          <label>Recipient Email</label>
-          <input v-model="makePixForm.recipientEmail" type="email" placeholder="recipient@example.com" />
+          <label>PIX Key Type</label>
+          <select v-model="makePixForm.pixKeyType" class="pix-type-selector">
+            <option value="EMAIL">Email</option>
+            <option value="CPF">CPF</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{ makePixForm.pixKeyType === 'EMAIL' ? 'Recipient Email' : 'Recipient CPF' }}</label>
+          <input 
+            v-model="makePixForm.recipientKey" 
+            :type="makePixForm.pixKeyType === 'EMAIL' ? 'email' : 'text'"
+            :placeholder="makePixForm.pixKeyType === 'EMAIL' ? 'recipient@example.com' : '000.000.000-00'" 
+          />
         </div>
         <div class="form-group">
           <label>Recipient Name (optional)</label>
@@ -40,8 +51,19 @@
           <input v-model="payPixForm.amount" type="number" step="0.01" placeholder="0.00" />
         </div>
         <div class="form-group">
-          <label>PIX Email</label>
-          <input v-model="payPixForm.pixCode" type="text" placeholder="Enter PIX email here" />
+          <label>PIX Key Type</label>
+          <select v-model="payPixForm.pixKeyType" class="pix-type-selector">
+            <option value="EMAIL">Email</option>
+            <option value="CPF">CPF</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{ payPixForm.pixKeyType === 'EMAIL' ? 'PIX Email' : 'PIX CPF' }}</label>
+          <input 
+            v-model="payPixForm.pixCode" 
+            :type="payPixForm.pixKeyType === 'EMAIL' ? 'email' : 'text'"
+            :placeholder="payPixForm.pixKeyType === 'EMAIL' ? 'Enter PIX email here' : 'Enter PIX CPF here'" 
+          />
         </div>
         <button @click="handlePayPix" :disabled="isProcessingPix" class="submit-button">
           <span v-if="isProcessingPix" class="loading-spinner">⏳</span>
@@ -75,12 +97,14 @@ const { address } = useFreighter()
 // State
 const makePixForm = ref({
   amount: '',
-  recipientEmail: '',
+  pixKeyType: 'EMAIL',
+  recipientKey: '',
   recipientName: ''
 })
 
 const payPixForm = ref({
   amount: '',
+  pixKeyType: 'EMAIL',
   pixCode: ''
 })
 
@@ -90,26 +114,73 @@ const validateEmail = (email) => {
   return emailRegex.test(email)
 }
 
+const validateCPF = (cpf) => {
+  // Remove non-numeric characters
+  cpf = cpf.replace(/[^\d]/g, '')
+  
+  // Check if CPF has 11 digits
+  if (cpf.length !== 11) return false
+  
+  // Check for known invalid CPFs
+  if (/^(\d)\1{10}$/.test(cpf)) return false
+  
+  // Validate CPF algorithm
+  let sum = 0
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cpf.charAt(i)) * (10 - i)
+  }
+  let remainder = (sum * 10) % 11
+  if (remainder === 10 || remainder === 11) remainder = 0
+  if (remainder !== parseInt(cpf.charAt(9))) return false
+  
+  sum = 0
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cpf.charAt(i)) * (11 - i)
+  }
+  remainder = (sum * 10) % 11
+  if (remainder === 10 || remainder === 11) remainder = 0
+  if (remainder !== parseInt(cpf.charAt(10))) return false
+  
+  return true
+}
+
+const formatCPF = (cpf) => {
+  // Remove non-numeric characters
+  cpf = cpf.replace(/[^\d]/g, '')
+  
+  // Apply CPF mask
+  return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+}
+
 const handleMakePix = async () => {
-  if (!makePixForm.value.amount || !makePixForm.value.recipientEmail) {
-    alert('Please fill in the amount and recipient email')
+  if (!makePixForm.value.amount || !makePixForm.value.recipientKey) {
+    alert('Please fill in the amount and recipient key')
     return
   }
 
-  if (!validateEmail(makePixForm.value.recipientEmail)) {
-    alert('Invalid email')
-    return
+  // Validate based on key type
+  if (makePixForm.value.pixKeyType === 'EMAIL') {
+    if (!validateEmail(makePixForm.value.recipientKey)) {
+      alert('Invalid email')
+      return
+    }
+  } else if (makePixForm.value.pixKeyType === 'CPF') {
+    if (!validateCPF(makePixForm.value.recipientKey)) {
+      alert('Invalid CPF')
+      return
+    }
   }
 
   emit('pix-success', 'make', {
     walletAddress: address.value,
     amount: parseFloat(makePixForm.value.amount),
-    recipientEmail: makePixForm.value.recipientEmail,
+    pixKeyType: makePixForm.value.pixKeyType,
+    recipientKey: makePixForm.value.recipientKey,
     recipientName: makePixForm.value.recipientName
   })
 
   // Reset form
-  makePixForm.value = { amount: '', recipientEmail: '', recipientName: '' }
+  makePixForm.value = { amount: '', pixKeyType: 'EMAIL', recipientKey: '', recipientName: '' }
 }
 
 const handlePayPix = async () => {
@@ -118,14 +189,28 @@ const handlePayPix = async () => {
     return
   }
 
+  // Validate based on key type
+  if (payPixForm.value.pixKeyType === 'EMAIL') {
+    if (!validateEmail(payPixForm.value.pixCode)) {
+      alert('Invalid email')
+      return
+    }
+  } else if (payPixForm.value.pixKeyType === 'CPF') {
+    if (!validateCPF(payPixForm.value.pixCode)) {
+      alert('Invalid CPF')
+      return
+    }
+  }
+
   emit('pix-success', 'pay', {
     walletAddress: address.value,
     amount: parseFloat(payPixForm.value.amount),
+    pixKeyType: payPixForm.value.pixKeyType,
     pixCode: payPixForm.value.pixCode
   })
 
   // Reset form
-  payPixForm.value = { amount: '', pixCode: '' }
+  payPixForm.value = { amount: '', pixKeyType: 'EMAIL', pixCode: '' }
 }
 </script>
 
@@ -232,6 +317,30 @@ const handlePayPix = async () => {
 
 .form-group input::placeholder {
   color: #A0A8B8;
+}
+
+.pix-type-selector {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.pix-type-selector:focus {
+  outline: none;
+  border-color: var(--pix);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.pix-type-selector option {
+  background: #17181A;
+  color: white;
 }
 
 .submit-button {
