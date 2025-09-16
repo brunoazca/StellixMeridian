@@ -1,8 +1,8 @@
 <template>
-  <div class="pay-page">
-    <div class="pay-container">
+  <div class="receive-page">
+    <div class="receive-container">
       <!-- Header -->
-      <div class="pay-header">
+      <div class="receive-header">
         <button @click="goBack" class="back-button">
           <img src="/images/arrow.svg" alt="Back" class="back-icon" />
           <span class="back-text">Back</span>
@@ -11,29 +11,28 @@
       </div>
 
       <!-- Title -->
-      <h1 class="page-title">Pay with PIX</h1>
+      <h1 class="page-title">Receive with PIX</h1>
 
-      <!-- Pay Form -->
-      <div class="pay-form">
-        <div class="form-group">
-          <label>PIX key or BR Code</label>
-          <input 
-            v-model="payPixForm.pixCode" 
-            type="text"
-            placeholder="Paste Code or Key"
-            class="form-input"
-          />
-        </div>
-
+      <!-- Receive Form -->
+      <div class="receive-form">
         <div class="form-group">
           <label>Amount</label>
           <input 
-            v-model="payPixForm.amount" 
+            v-model="makePixForm.amount" 
             type="text"
             placeholder="R$ 00,00"
             class="form-input"
             @input="formatAmount"
           />
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea 
+            v-model="makePixForm.description" 
+            placeholder="Add a note"
+            class="form-textarea"
+          ></textarea>
         </div>
 
         <!-- Merit Card -->
@@ -45,7 +44,7 @@
             </div>
             <label class="toggle-label">
               <input 
-                v-model="payPixForm.useMerit" 
+                v-model="makePixForm.useMerit" 
                 type="checkbox" 
                 class="toggle-input"
               />
@@ -55,7 +54,7 @@
         </div>
 
         <button 
-          @click="handlePayPix" 
+          @click="handleMakePix" 
           :disabled="isProcessingPix" 
           class="submit-button"
         >
@@ -64,8 +63,16 @@
         </button>
 
         <div v-if="isProcessingPix" class="processing-info">
-          Processing PIX payment...
+          Processing PIX request...
         </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="disclaimer">
+        <div class="info-icon">ℹ️</div>
+        <p class="disclaimer-text">
+          The generated PIX code will be valid for 24 hours. Share it with the person who will send you the payment.
+        </p>
       </div>
     </div>
   </div>
@@ -78,12 +85,12 @@ import { usePIX } from '~/composables/usePIX'
 
 // Composables
 const { address } = useFreighter()
-const { handlePayPix: processPayPix, isProcessingPix } = usePIX()
+const { handleMakePix: processMakePix, isProcessingPix } = usePIX()
 
 // State
-const payPixForm = ref({
+const makePixForm = ref({
   amount: '',
-  pixCode: '',
+  description: '',
   useMerit: false
 })
 
@@ -97,42 +104,38 @@ const formatAmount = (event) => {
   if (value) {
     // Convert to currency format (R$ 00,00)
     const amount = (parseInt(value) / 100).toFixed(2)
-    payPixForm.value.amount = `R$ ${amount.replace('.', ',')}`
+    makePixForm.value.amount = `R$ ${amount.replace('.', ',')}`
   } else {
-    payPixForm.value.amount = ''
+    makePixForm.value.amount = ''
   }
 }
 
-const handlePayPix = async () => {
-  if (!payPixForm.value.amount || !payPixForm.value.pixCode) {
-    alert('Please fill in the amount and PIX code')
+const handleMakePix = async () => {
+  if (!makePixForm.value.amount) {
+    alert('Please fill in the amount')
     return
   }
 
-  // Navigate to confirmation page with payment data
-  const numericAmount = payPixForm.value.amount.replace(/[^\d,]/g, '').replace(',', '.')
-  
-  // Extract recipient info from PIX code (mock for now)
-  const recipientName = 'João Silva Santos' // In real app, would come from PIX lookup
-  const recipientCpf = '123.456.789-00' // In real app, would come from PIX lookup
-  
-  navigateTo({
-    path: '/confirm-payment',
-    query: {
-      amount: numericAmount,
-      pixCode: payPixForm.value.pixCode,
-      useMerit: payPixForm.value.useMerit,
-      recipientName: recipientName,
-      recipientCpf: recipientCpf
-    }
+  // Extract numeric value from formatted amount
+  const numericAmount = makePixForm.value.amount.replace(/[^\d,]/g, '').replace(',', '.')
+
+  const success = await processMakePix({
+    walletAddress: address.value,
+    amount: parseFloat(numericAmount),
+    description: makePixForm.value.description,
+    useMerit: makePixForm.value.useMerit
   })
+
+  if (success) {
+    navigateTo('/')
+  }
 }
 
 // Meta tags
 useHead({
-  title: 'Pay PIX - Stellix',
+  title: 'Receive PIX - Stellix',
   meta: [
-    { name: 'description', content: 'Pay PIX using Stellar XLM' }
+    { name: 'description', content: 'Receive PIX using Stellar XLM' }
   ]
 })
 </script>
@@ -140,19 +143,19 @@ useHead({
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-.pay-page {
+.receive-page {
   min-height: 100vh;
   background: #262626;
   padding: 1rem;
 }
 
-.pay-container {
+.receive-container {
   max-width: 400px;
   margin: 0 auto;
   padding-top: 2rem;
 }
 
-.pay-header {
+.receive-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -200,7 +203,7 @@ useHead({
   text-align: center;
 }
 
-.pay-form {
+.receive-form {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -230,12 +233,25 @@ useHead({
   transition: all 0.3s ease;
 }
 
-.form-input:focus, .form-select:focus {
+.form-textarea {
+  background: #17181A;
+  border: none;
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  height: 90px;
+  resize: none;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
   background: #17181A;
 }
 
-.form-input::placeholder {
+.form-input::placeholder, .form-textarea::placeholder {
   color: rgba(255, 255, 255, 0.5);
 }
 
@@ -354,17 +370,45 @@ useHead({
   to { transform: rotate(360deg); }
 }
 
+.disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: rgba(48, 104, 191, 0.1);
+  border-radius: 12px;
+  border-left: 3px solid var(--accent-blue);
+}
+
+.info-icon {
+  font-size: 1.2rem;
+  color: var(--accent-blue);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.disclaimer-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--white);
+  line-height: 1.4;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
-  .pay-page {
+  .receive-page {
     padding: 0.5rem;
   }
   
-  .pay-container {
+  .receive-container {
     padding-top: 1rem;
   }
   
-  .pay-form {
-    padding: 1.5rem;
+  .disclaimer {
+    margin-top: 1.5rem;
+    padding: 0.75rem;
   }
 }
 </style>

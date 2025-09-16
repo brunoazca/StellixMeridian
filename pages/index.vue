@@ -36,7 +36,7 @@
               <img src="/images/qr-code.svg" alt="QR Code" class="button-icon" />
               Pay
             </button>
-            <button class="receive-button" @click="openMakePix">
+            <button class="receive-button" @click="handleReceiveClick">
               <img src="/images/receive.svg" alt="Receive" class="button-icon" />
               Receive
             </button>
@@ -146,6 +146,17 @@ const handlePayClick = () => {
   } else {
     // Open modal on desktop
     openPayPix()
+  }
+}
+
+const handleReceiveClick = () => {
+  // Check if screen is mobile (768px or less)
+  if (window.innerWidth <= 768) {
+    // Navigate to receive page on mobile
+    navigateTo('/receive')
+  } else {
+    // Open modal on desktop
+    openMakePix()
   }
 }
 
