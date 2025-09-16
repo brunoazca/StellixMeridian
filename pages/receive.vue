@@ -79,13 +79,20 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useFreighter } from '~/composables/useFreighter'
 import { usePIX } from '~/composables/usePIX'
+import { useWalletAuth } from '~/composables/useWalletAuth'
 
 // Composables
 const { address } = useFreighter()
 const { handleMakePix: processMakePix, isProcessingPix } = usePIX()
+const { requireAuth } = useWalletAuth()
+
+// Check wallet connection on mount
+onMounted(() => {
+  requireAuth()
+})
 
 // State
 const makePixForm = ref({

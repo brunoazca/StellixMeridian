@@ -16,12 +16,13 @@
       <!-- Pay Form -->
       <div class="pay-form">
         <div class="form-group">
-          <label>PIX key or BR Code</label>
+          <label>PIX Key or BR Code</label>
           <input 
             v-model="payPixForm.pixCode" 
             type="text"
             placeholder="Paste Code or Key"
             class="form-input"
+            @input="detectPixType"
           />
         </div>
 
@@ -72,13 +73,20 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useFreighter } from '~/composables/useFreighter'
 import { usePIX } from '~/composables/usePIX'
+import { useWalletAuth } from '~/composables/useWalletAuth'
 
 // Composables
 const { address } = useFreighter()
 const { handlePayPix: processPayPix, isProcessingPix } = usePIX()
+const { requireAuth } = useWalletAuth()
+
+// Check wallet connection on mount
+onMounted(() => {
+  requireAuth()
+})
 
 // State
 const payPixForm = ref({
@@ -87,9 +95,54 @@ const payPixForm = ref({
   useMerit: false
 })
 
+const detectedPixType = ref(null)
+
 // Methods
 const goBack = () => {
   navigateTo('/')
+}
+
+// PIX Type Detection
+const detectPixType = () => {
+  const pixCode = payPixForm.value.pixCode.trim()
+  
+  if (!pixCode) {
+    detectedPixType.value = null
+    return
+  }
+  
+  // Código PIX Copia e Cola
+  if (pixCode.startsWith('000201') && pixCode.length > 50) {
+    detectedPixType.value = { type: 'BRCODE', isCopiaECola: true }
+    return
+  }
+  
+  // Email
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixCode)) {
+    detectedPixType.value = { type: 'EMAIL', isCopiaECola: false }
+    return
+  }
+  
+  // CPF
+  if (/^(\d{3}\.?\d{3}\.?\d{3}-?\d{2})$/.test(pixCode)) {
+    detectedPixType.value = { type: 'CPF', isCopiaECola: false }
+    return
+  }
+  
+  // CNPJ
+  if (/^(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})$/.test(pixCode)) {
+    detectedPixType.value = { type: 'CNPJ', isCopiaECola: false }
+    return
+  }
+  
+  // Telefone
+  if (/^(\+?55\s?)?(\(?\d{2}\)?\s?)?\d{4,5}-?\d{4}$/.test(pixCode)) {
+    detectedPixType.value = { type: 'PHONE', isCopiaECola: false }
+    return
+  }
+  
+  // Fallback para código PIX
+  detectedPixType.value = { type: 'BRCODE', isCopiaECola: true }
 }
 
 const formatAmount = (event) => {
@@ -108,6 +161,8 @@ const handlePayPix = async () => {
     alert('Please fill in the amount and PIX code')
     return
   }
+
+  console.log("Pix type: ", detectedPixType.value.type);
 
   // Navigate to confirmation page with payment data
   const numericAmount = payPixForm.value.amount.replace(/[^\d,]/g, '').replace(',', '.')

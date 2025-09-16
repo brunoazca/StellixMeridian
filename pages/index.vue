@@ -139,14 +139,8 @@ const copyAddress = async () => {
 }
 
 const handlePayClick = () => {
-  // Check if screen is mobile (768px or less)
-  if (window.innerWidth <= 768) {
-    // Navigate to pay page on mobile
-    navigateTo('/pay')
-  } else {
-    // Open modal on desktop
-    openPayPix()
-  }
+  // Always navigate to pay page
+  navigateTo('/pay')
 }
 
 const handleReceiveClick = () => {

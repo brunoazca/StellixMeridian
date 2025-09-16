@@ -103,17 +103,24 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePIX } from '~/composables/usePIX'
 import { useXLMBalance } from '~/composables/useXLMBalance'
 import { useMeritTokens } from '~/composables/useMeritTokens'
 import { useFreighter } from '~/composables/useFreighter'
+import { useWalletAuth } from '~/composables/useWalletAuth'
 
 // Composables
 const { handlePayPix: processPayPix } = usePIX()
 const { xlmBalance, xlmBalanceBRL } = useXLMBalance()
 const { meritBalance } = useMeritTokens()
-const { address, isWalletConnected } = useFreighter()
+const { address } = useFreighter()
+const { requireAuth } = useWalletAuth()
+
+// Check wallet connection on mount
+onMounted(() => {
+  requireAuth()
+})
 
 // State
 const isProcessing = ref(false)
@@ -196,9 +203,8 @@ const processPayment = async () => {
   try {
     // Process the actual PIX payment
     const success = await processPayPix({
-      walletAddress: 'GD05MEIGATLKEQG57JTXAA7PJ5C3BE7Z5I6Y4L5T5VF0IJF4HTHVPREX',
+      walletAddress: address.value || 'GD05MEIGATLKEQG57JTXAA7PJ5C3BE7Z5I6Y4L5T5VF0IJF4HTHVPREX',
       amount: parseFloat(paymentData.value.amount),
-      pixKeyType: 'EMAIL',
       pixCode: paymentData.value.pixCode,
       useMerit: paymentData.value.useMerit
     })

@@ -59,7 +59,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useWalletAuth } from '~/composables/useWalletAuth'
+
+// Composables
+const { requireAuth } = useWalletAuth()
+
+// Check wallet connection on mount
+onMounted(() => {
+  requireAuth()
+})
 
 // Get payment data from route query
 const route = useRoute()
