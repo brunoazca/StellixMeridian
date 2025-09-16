@@ -32,7 +32,7 @@
 
           <!-- Action Buttons -->
           <div class="action-buttons">
-            <button class="pay-button" @click="openPayPix">
+            <button class="pay-button" @click="handlePayClick">
               <img src="/images/qr-code.svg" alt="QR Code" class="button-icon" />
               Pay
             </button>
@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { watch, ref } from 'vue'
+import { watch, ref, onMounted, onUnmounted } from 'vue'
 import { useFreighter } from '~/composables/useFreighter'
 import { useXLMBalance } from '~/composables/useXLMBalance'
 import { useMeritTokens } from '~/composables/useMeritTokens'
@@ -137,6 +137,31 @@ const copyAddress = async () => {
     }
   }
 }
+
+const handlePayClick = () => {
+  // Check if screen is mobile (768px or less)
+  if (window.innerWidth <= 768) {
+    // Navigate to pay page on mobile
+    navigateTo('/pay')
+  } else {
+    // Open modal on desktop
+    openPayPix()
+  }
+}
+
+// Add resize listener for responsive behavior
+onMounted(() => {
+  const handleResize = () => {
+    // This will be called when window is resized
+    // The handlePayClick function will check the current width
+  }
+  
+  window.addEventListener('resize', handleResize)
+  
+  onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
+  })
+})
 
 const handlePIXSuccess = async (type, data) => {
   if (type === 'make') {
