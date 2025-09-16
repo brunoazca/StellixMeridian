@@ -43,8 +43,8 @@
           <h3 class="section-label">Fees</h3>
           <div class="detail-content">
             <div class="fee-item">
-              <span class="fee-label">Transaction fee</span>
-              <span class="fee-value">R$ {{ BASE_FEE_BRL.toFixed(2).replace('.', ',') }}</span>
+              <span class="fee-label">Transaction fee (2.3%)</span>
+              <span class="fee-value">R$ {{ baseFeeAmount.toFixed(2).replace('.', ',') }}</span>
             </div>
             <div v-if="paymentData.useMerit && meritTokensUsed > 0" class="fee-item merit-applied">
               <span class="fee-label">Merit applied</span>
@@ -121,7 +121,7 @@ const { address, isWalletConnected } = useFreighter()
 
 // Constants
 const MERIT_VALUE_USD = 0.0975 // $0.0975 per MERIT token
-const BASE_FEE_BRL = 2.50 // R$ 2.50 base transaction fee
+const FEE_RATE = 0.023 // 2.3% transaction fee
 const MERIT_EARNINGS_RATE = 0.02 // 2% of XLM amount in MERIT tokens
 const USD_TO_BRL_RATE = 5.20 // Approximate USD to BRL rate
 const MERIT_VALUE_BRL = MERIT_VALUE_USD * USD_TO_BRL_RATE // MERIT value in BRL
@@ -162,9 +162,15 @@ const totalAvailableMerit = computed(() => {
   return meritBalance.value + meritEarnings.value
 })
 
+// Calculate base fee (2.3% of amount)
+const baseFeeAmount = computed(() => {
+  const amount = parseFloat(paymentData.value.amount)
+  return amount * FEE_RATE
+})
+
 // Calculate how much MERIT is needed to cover the full fee
 const meritNeededForFullFee = computed(() => {
-  return BASE_FEE_BRL / MERIT_VALUE_BRL
+  return baseFeeAmount.value / MERIT_VALUE_BRL
 })
 
 // Calculate actual MERIT tokens used (limited by available amount)
@@ -182,11 +188,11 @@ const meritValueUsedBRL = computed(() => {
 
 const finalFee = computed(() => {
   if (!paymentData.value.useMerit) {
-    return BASE_FEE_BRL.toFixed(2)
+    return baseFeeAmount.value.toFixed(2)
   }
   
   // Calculate final fee after MERIT reduction
-  const feeAfterMeritReduction = Math.max(0, BASE_FEE_BRL - meritValueUsedBRL.value)
+  const feeAfterMeritReduction = Math.max(0, baseFeeAmount.value - meritValueUsedBRL.value)
   return feeAfterMeritReduction.toFixed(2)
 })
 

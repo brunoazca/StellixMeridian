@@ -1,42 +1,5 @@
 <template>
-  <!-- Make PIX Modal -->
-  <div v-if="showMakePix" class="modal-overlay" @click="$emit('close-make-pix')">
-    <div class="modal" @click.stop>
-      <div class="modal-header">
-        <h3>💸 Receive PIX</h3>
-        <button @click="$emit('close-make-pix')" class="close-button">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>Amount (R$)</label>
-          <input v-model="makePixForm.amount" type="number" step="0.01" placeholder="0.00" />
-        </div>
-        <div class="form-group">
-          <label>PIX Key Type</label>
-          <select v-model="makePixForm.pixKeyType" class="pix-type-selector">
-            <option value="EMAIL">Email</option>
-            <option value="CPF">CPF</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>{{ makePixForm.pixKeyType === 'EMAIL' ? 'Recipient Email' : 'Recipient CPF' }}</label>
-          <input 
-            v-model="makePixForm.recipientKey" 
-            :type="makePixForm.pixKeyType === 'EMAIL' ? 'email' : 'text'"
-            :placeholder="makePixForm.pixKeyType === 'EMAIL' ? 'recipient@example.com' : '000.000.000-00'" 
-          />
-        </div>
-        <div class="form-group">
-          <label>Recipient Name (optional)</label>
-          <input v-model="makePixForm.recipientName" type="text" placeholder="Full name" />
-        </div>
-        <button @click="handleMakePix" :disabled="isProcessingPix" class="submit-button">
-          <span v-if="isProcessingPix" class="loading-spinner">⏳</span>
-          {{ isProcessingPix ? 'Processing...' : 'Receive PIX' }}
-        </button>
-      </div>
-    </div>
-  </div>
+  <!-- Make PIX Modal - Removed: Receive now navigates to /receive page -->
 
   <!-- Pay PIX Modal - Removed: Pay now navigates to /pay page -->
 </template>
@@ -58,14 +21,7 @@ const emit = defineEmits(['close-make-pix', 'close-pay-pix', 'pix-success'])
 // Composables
 const { address } = useFreighter()
 
-// State
-const makePixForm = ref({
-  amount: '',
-  pixKeyType: 'EMAIL',
-  recipientKey: '',
-  recipientName: ''
-})
-
+// makePixForm removed - Make PIX now handled by /receive page
 // payPixForm removed - Pay PIX now handled by /pay page
 
 // Methods
@@ -112,36 +68,7 @@ const formatCPF = (cpf) => {
   return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
 }
 
-const handleMakePix = async () => {
-  if (!makePixForm.value.amount || !makePixForm.value.recipientKey) {
-    alert('Please fill in the amount and recipient key')
-    return
-  }
-
-  // Validate based on key type
-  if (makePixForm.value.pixKeyType === 'EMAIL') {
-    if (!validateEmail(makePixForm.value.recipientKey)) {
-      alert('Invalid email')
-      return
-    }
-  } else if (makePixForm.value.pixKeyType === 'CPF') {
-    if (!validateCPF(makePixForm.value.recipientKey)) {
-      alert('Invalid CPF')
-      return
-    }
-  }
-
-  emit('pix-success', 'make', {
-    walletAddress: address.value,
-    amount: parseFloat(makePixForm.value.amount),
-    pixKeyType: makePixForm.value.pixKeyType,
-    recipientKey: makePixForm.value.recipientKey,
-    recipientName: makePixForm.value.recipientName
-  })
-
-  // Reset form
-  makePixForm.value = { amount: '', pixKeyType: 'EMAIL', recipientKey: '', recipientName: '' }
-}
+// handleMakePix removed - Make PIX functionality moved to /receive page
 
 // handlePayPix removed - Pay PIX functionality moved to /pay page
 </script>

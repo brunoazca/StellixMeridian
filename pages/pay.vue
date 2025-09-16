@@ -42,7 +42,7 @@
             <div class="merit-info">
               <h3>Use Merit to reduce fees</h3>
               <p v-if="payPixForm.useMerit" class="estimated-fee">Estimated fee after Merit: R$ {{ estimatedFeeAfterMerit }}</p>
-              <p v-else class="estimated-fee">Transaction fee: R$ {{ BASE_FEE_BRL.toFixed(2).replace('.', ',') }}</p>
+              <p v-else class="estimated-fee">Transaction fee (2.3%): R$ {{ estimatedFeeAfterMerit }}</p>
               <p v-if="estimatedMeritEarnings > 0" class="merit-earnings-info">
                 You will earn {{ estimatedMeritEarnings.toFixed(2) }} MERIT tokens (2% of XLM)
               </p>
@@ -90,7 +90,7 @@ const { meritBalance } = useMeritTokens()
 const MERIT_VALUE_USD = 0.0975
 const USD_TO_BRL_RATE = 5.20
 const MERIT_VALUE_BRL = MERIT_VALUE_USD * USD_TO_BRL_RATE
-const BASE_FEE_BRL = 2.50
+const FEE_RATE = 0.023 // 2.3% taxa
 const MERIT_EARNINGS_RATE = 0.02
 
 // State
@@ -102,13 +102,20 @@ const payPixForm = ref({
 
 // Computed
 const estimatedFeeAfterMerit = computed(() => {
-  if (!payPixForm.value.useMerit || !payPixForm.value.amount) {
-    return BASE_FEE_BRL.toFixed(2).replace('.', ',')
-  }
-  
   // Parse amount from formatted string
   const numericAmount = payPixForm.value.amount.replace(/[^\d,]/g, '').replace(',', '.')
   const amount = parseFloat(numericAmount) || 0
+  
+  if (amount === 0) {
+    return '0,00'
+  }
+  
+  // Calculate base fee (2.3% of amount)
+  const baseFee = amount * FEE_RATE
+  
+  if (!payPixForm.value.useMerit) {
+    return baseFee.toFixed(2).replace('.', ',')
+  }
   
   // Calculate XLM amount (assuming 1 BRL = 0.37 XLM)
   const xlmAmount = amount * 0.37
@@ -120,13 +127,13 @@ const estimatedFeeAfterMerit = computed(() => {
   const totalAvailableMerit = meritBalance.value + meritEarnings
   
   // MERIT needed to cover full fee
-  const meritNeededForFullFee = BASE_FEE_BRL / MERIT_VALUE_BRL
+  const meritNeededForFullFee = baseFee / MERIT_VALUE_BRL
   
   // Actual MERIT used
   const meritUsed = Math.min(meritNeededForFullFee, totalAvailableMerit)
   
   // Final fee after MERIT reduction
-  const finalFee = Math.max(0, BASE_FEE_BRL - (meritUsed * MERIT_VALUE_BRL))
+  const finalFee = Math.max(0, baseFee - (meritUsed * MERIT_VALUE_BRL))
   
   return finalFee.toFixed(2).replace('.', ',')
 })

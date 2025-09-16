@@ -40,7 +40,11 @@
           <div class="merit-content">
             <div class="merit-info">
               <h3>Use Merit to reduce fees</h3>
-              <p class="estimated-fee">Estimated fee after Merit: R$ 2,50</p>
+              <p v-if="makePixForm.useMerit" class="estimated-fee">Estimated fee after Merit: R$ {{ estimatedFee }}</p>
+              <p v-else class="estimated-fee">Transaction fee (2.3%): R$ {{ estimatedFee }}</p>
+              <p v-if="estimatedMeritEarnings > 0" class="merit-earnings-info">
+                You will earn {{ estimatedMeritEarnings.toFixed(2) }} MERIT tokens (2% of XLM)
+              </p>
             </div>
             <label class="toggle-label">
               <input 
@@ -55,16 +59,10 @@
 
         <button 
           @click="handleMakePix" 
-          :disabled="isProcessingPix" 
           class="submit-button"
         >
-          <span v-if="isProcessingPix" class="loading-spinner">⏳</span>
-          {{ isProcessingPix ? 'Processing...' : 'Continue' }}
+          Continue
         </button>
-
-        <div v-if="isProcessingPix" class="processing-info">
-          Processing PIX request...
-        </div>
       </div>
 
       <!-- Disclaimer -->
@@ -79,19 +77,80 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useFreighter } from '~/composables/useFreighter'
-import { usePIX } from '~/composables/usePIX'
+import { useMeritTokens } from '~/composables/useMeritTokens'
 
 // Composables
 const { address } = useFreighter()
-const { handleMakePix: processMakePix, isProcessingPix } = usePIX()
+const { meritBalance } = useMeritTokens()
+
+// Constants for fee calculation
+const FEE_RATE = 0.023 // 2.3%
+const MERIT_EARNINGS_RATE = 0.02 // 2% MERIT earnings
+const BRL_TO_XLM_RATE = 0.37 // Approximate conversion rate
+const MERIT_VALUE_USD = 0.0975
+const USD_TO_BRL_RATE = 5.20
+const MERIT_VALUE_BRL = MERIT_VALUE_USD * USD_TO_BRL_RATE
+
+// Default PIX receiving account
+const DEFAULT_PIX_ACCOUNT = {
+  cpf: '20177384760',
+  name: 'Stellix PIX Account',
+  pixKeyType: 'CPF'
+}
 
 // State
 const makePixForm = ref({
   amount: '',
   description: '',
   useMerit: false
+})
+
+// Computed properties for fee preview
+const numericAmount = computed(() => {
+  if (!makePixForm.value.amount) return 0
+  return parseFloat(makePixForm.value.amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0
+})
+
+const estimatedFee = computed(() => {
+  if (numericAmount.value === 0) {
+    return '0,00'
+  }
+  
+  // Calculate what someone needs to pay to deliver the requested amount
+  const paymentAmount = numericAmount.value / (1 - FEE_RATE)
+  const baseFee = paymentAmount - numericAmount.value
+  
+  if (!makePixForm.value.useMerit) {
+    return baseFee.toFixed(2).replace('.', ',')
+  }
+  
+  // Calculate XLM amount (assuming 1 BRL = 0.37 XLM)
+  const xlmAmount = numericAmount.value * BRL_TO_XLM_RATE
+  
+  // Calculate MERIT earnings (2% of XLM)
+  const meritEarnings = xlmAmount * MERIT_EARNINGS_RATE
+  
+  // Total available MERIT
+  const totalAvailableMerit = meritBalance.value + meritEarnings
+  
+  // MERIT needed to cover full fee
+  const meritNeededForFullFee = baseFee / MERIT_VALUE_BRL
+  
+  // Actual MERIT used
+  const meritUsed = Math.min(meritNeededForFullFee, totalAvailableMerit)
+  
+  // Final fee after MERIT reduction
+  const finalFee = Math.max(0, baseFee - (meritUsed * MERIT_VALUE_BRL))
+  
+  return finalFee.toFixed(2).replace('.', ',')
+})
+
+const estimatedMeritEarnings = computed(() => {
+  if (numericAmount.value === 0) return 0
+  const xlmAmount = numericAmount.value * BRL_TO_XLM_RATE
+  return xlmAmount * MERIT_EARNINGS_RATE
 })
 
 // Methods
@@ -119,33 +178,18 @@ const handleMakePix = async () => {
   // Extract numeric value from formatted amount
   const numericAmount = makePixForm.value.amount.replace(/[^\d,]/g, '').replace(',', '.')
 
-  try {
-    const success = await processMakePix({
-      walletAddress: address.value,
-      amount: parseFloat(numericAmount),
+  // Navigate to share PIX page with form data
+  // The PIX codes will be generated on the share-pix page
+  navigateTo({
+    path: '/share-pix',
+    query: {
+      amount: numericAmount,
       description: makePixForm.value.description,
-      useMerit: makePixForm.value.useMerit
-    })
-
-    // Navigate to share PIX page regardless of API response
-    navigateTo({
-      path: '/share-pix',
-      query: {
-        amount: numericAmount,
-        description: makePixForm.value.description
-      }
-    })
-  } catch (error) {
-    console.error('PIX creation failed:', error)
-    // Still navigate to share page even if API fails
-    navigateTo({
-      path: '/share-pix',
-      query: {
-        amount: numericAmount,
-        description: makePixForm.value.description
-      }
-    })
-  }
+      walletAddress: address.value,
+      useMerit: makePixForm.value.useMerit,
+      meritBalance: meritBalance.value
+    }
+  })
 }
 
 // Meta tags
@@ -299,6 +343,14 @@ useHead({
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--light-gray);
+  margin: 0;
+}
+
+.merit-earnings-info {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #10b981;
   margin: 0;
 }
 

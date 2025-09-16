@@ -60,6 +60,15 @@
             </button>
           </div>
 
+          <!-- Development Tools -->
+          <div class="dev-tools">
+            <h3 class="dev-title">Development Tools</h3>
+            <button class="dev-button" @click="simulatePixTransaction()">
+              🧪 Simulate PIX Transaction
+            </button>
+            <p class="dev-note">Simulates a PIX transaction with MERIT transfers</p>
+          </div>
+
           <!-- Wallet Info Section -->
           <div class="wallet-info-section">
             <div class="wallet-status">
@@ -80,7 +89,7 @@
 
         <!-- PIX Modals -->
         <PIXModals 
-          :show-make-pix="showMakePix"
+          :show-make-pix="false"
           :show-pay-pix="false"
           :is-processing-pix="isProcessingPix"
           @close-make-pix="closeMakePix"
@@ -134,7 +143,6 @@ watch(selectedNetwork, async (newNetwork) => {
   }
 })
 const { 
-  showMakePix, 
   isProcessingPix, 
   openMakePix, 
   openPayPix, 
@@ -150,7 +158,8 @@ const {
   error: monitoringError,
   startMonitoring,
   stopMonitoring,
-  clearNotifications
+  clearNotifications,
+  simulatePixTransaction
 } = usePIXMonitoring()
 
 // Methods
@@ -588,5 +597,56 @@ html, body {
     padding: 1rem 1.5rem;
     font-size: 1rem;
   }
+}
+
+/* Development Tools Styles */
+.dev-tools {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.dev-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #8b5cf6;
+  margin: 0 0 0.75rem 0;
+  text-align: center;
+}
+
+.dev-button {
+  width: 100%;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid #8b5cf6;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #8b5cf6;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 0.5rem;
+}
+
+.dev-button:hover {
+  background: rgba(139, 92, 246, 0.3);
+  transform: translateY(-1px);
+}
+
+.dev-button:active {
+  transform: translateY(0);
+}
+
+.dev-note {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  color: #8b5cf6;
+  text-align: center;
+  margin: 0;
+  opacity: 0.8;
 }
 </style>

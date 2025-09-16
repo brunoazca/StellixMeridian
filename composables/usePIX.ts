@@ -55,7 +55,8 @@ export const usePIX = () => {
   }
 
   const openMakePix = () => {
-    showMakePix.value = true
+    // Navigate to receive page instead of opening modal
+    navigateTo('/receive')
   }
 
   const openPayPix = () => {
