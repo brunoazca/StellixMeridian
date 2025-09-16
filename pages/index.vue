@@ -26,7 +26,7 @@
             <div class="balance-fiat">{{ formatBRL(xlmBalanceBRL) }}</div>
             <button class="merit-tokens-button">
               <img src="/images/medal.svg" alt="Medal" class="merit-icon" />
-              125 Merit Tokens
+              {{ formatMeritBalance(meritBalance) }} Merit Tokens
             </button>
           </div>
 
@@ -75,9 +75,10 @@
 </template>
 
 <script setup>
-import { watch } from 'vue'
+import { watch, ref } from 'vue'
 import { useFreighter } from '~/composables/useFreighter'
 import { useXLMBalance } from '~/composables/useXLMBalance'
+import { useMeritTokens } from '~/composables/useMeritTokens'
 import { usePIX } from '~/composables/usePIX'
 import WalletConnect from '~/components/WalletConnect.vue'
 import WalletInfo from '~/components/WalletInfo.vue'
@@ -90,6 +91,7 @@ import Dropdown from '~/components/Dropdown.vue'
 // Composables
 const { isWalletConnected, disconnectFreighter, address, currentNetwork, switchToNetwork } = useFreighter()
 const { xlmBalance, xlmBalanceBRL, formatBalance, formatBRL } = useXLMBalance()
+const { meritBalance, formatMeritBalance } = useMeritTokens()
 
 // Network selection
 const selectedNetwork = ref(currentNetwork.value || 'TESTNET')
