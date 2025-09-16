@@ -31,7 +31,7 @@
           </div>
 
           <!-- PIX Monitoring Status -->
-          <div class="pix-monitoring-section">
+          <!-- <div class="pix-monitoring-section">
             <div class="monitoring-status">
               <div class="status-indicator" :class="{ active: isMonitoring }">
                 <span class="status-dot"></span>
@@ -48,7 +48,7 @@
             </div>
             
             <!-- PIX Notifications -->
-            <div v-if="receivedPIXNotifications.length > 0" class="pix-notifications">
+            <!-- <div v-if="receivedPIXNotifications.length > 0" class="pix-notifications">
               <h3 class="notifications-title">PIX Recebidos</h3>
               <div class="notifications-list">
                 <div 
@@ -69,7 +69,7 @@
                 Limpar notificações
               </button>
             </div>
-          </div>
+          </div> -->
 
           <!-- Action Buttons -->
           <div class="action-buttons">
@@ -77,14 +77,14 @@
               <img src="/images/qr-code.svg" alt="QR Code" class="button-icon" />
               Pay
             </button>
-            <button class="receive-button" @click="openMakePix">
+            <!-- <button class="receive-button" @click="openMakePix">
               <img src="/images/receive.svg" alt="Receive" class="button-icon" />
               Receive
-            </button>
+            </button> -->
           </div>
 
-          <!-- Development Tools -->
-          <div class="dev-tools">
+          Development Tools
+          <!-- <div class="dev-tools">
             <h3 class="dev-title">Development Tools</h3>
             <button class="dev-button" @click="testSimulation">
               🧪 Simulate PIX Received
@@ -93,7 +93,7 @@
               🗑️ Clear Balance Changes
             </button>
             <p class="dev-note">Simula recebimento de PIX e atualiza saldos automaticamente</p>
-          </div>
+          </div> -->
 
           <!-- Wallet Info Section -->
           <div class="wallet-info-section">
